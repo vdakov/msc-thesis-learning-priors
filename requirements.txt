@@ -10,6 +10,5 @@ xgboost
 tqdm
 numpy
 openml
-catboost
 botorch
 jupyter
