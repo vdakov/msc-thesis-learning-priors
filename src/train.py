@@ -15,22 +15,9 @@ import torch
 from torch import nn
 from torch.optim.lr_scheduler import LambdaLR
 
-# copied from huggingface
-def get_cosine_schedule_with_warmup(optimizer, num_warmup_steps, num_training_steps, num_cycles=0.5, last_epoch=-1):
-    """ Create a schedule with a learning rate that decreases following the
-    values of the cosine function between 0 and `pi * cycles` after a warmup
-    period during which it increases linearly between 0 and 1.
-    """
 
-    def lr_lambda(current_step):
-        if current_step < num_warmup_steps:
-            return float(current_step) / float(max(1, num_warmup_steps))
-        progress = float(current_step - num_warmup_steps) / float(max(1, num_training_steps - num_warmup_steps))
-        return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)))
 
-    return LambdaLR(optimizer, lr_lambda, last_epoch)
-
-def load_transformer(transormer_configuration, generators, decoder):
+def load_transformer(transformer_configuration, generators):
     emsize, nhead, nhid, nlayers, dropout, n_in, n_out, input_normalization, y_encoder_generator, sequence_length, fuse_x_y  = transformer_configuration
     encoder_generator, y_encoder_generator, pos_encoder_generator = generators
     encoder = encoder_generator(n_in + 1 if fuse_x_y else n_in,emsize)
@@ -38,22 +25,21 @@ def load_transformer(transormer_configuration, generators, decoder):
     pos_encoder = (pos_encoder_generator or positional_encodings.NoPositionalEncoding)(emsize, sequence_length * 2)
     model = TransformerModel(encoder, n_out, emsize, nhead, nhid, nlayers, dropout,
                              y_encoder=y_encoder, input_normalization=input_normalization,
-                             pos_encoder=pos_encoder,
-                             decoder=decoder
-                             )
+                             pos_encoder=pos_encoder)
     return model 
     
 
-def train(prior_dataloader, criterion, encoder_generator, transformer_configuration, generators, decoder, training_configuration,
-          prior_hyperparameters, load_path=None, context_delimiter_generator=None, device='cuda:0',
-          aggregate_k_gradients=1, verbose=True, save_path = None, **kwargs):
+def train(prior_dataloader, criterion, transformer_configuration, generators, training_configuration,
+          prior_hyperparameters, load_path=None, context_delimiter_generator=None, device='cuda:0', 
+          verbose=True, save_path = None, **kwargs):
 
     
     device = device if torch.cuda.is_available() else "cpu:0"
     print(f'Using {device} device')
     epochs, steps_per_epoch, batch_size, sequence_length, lr, warmup_epochs, validation_period, aggregate_k_gradients, scheduler = training_configuration
     dataloader = prior_dataloader.get_dataloader(num_steps=steps_per_epoch, batch_size=batch_size, seq_len=sequence_length, **prior_hyperparameters)
-    model = load_transformer(transformer_configuration, generators, decoder)
+    model = load_transformer(transformer_configuration, generators)
+    n_out = dataloader.num_outputs
     
     model.criterion = criterion
     if load_path is not None:
@@ -72,12 +58,14 @@ def train(prior_dataloader, criterion, encoder_generator, transformer_configurat
         assert len(dataloader) % aggregate_k_gradients == 0, 'Please set the number of steps per epoch s.t. `aggregate_k_gradients` divides it.'
         for batch, (data, targets) in enumerate(dataloader):
             context_delimiter = context_delimiter_generator() if callable(context_delimiter_generator) else context_delimiter_generator
+            print(context_delimiter)
     
-            output = model(tuple(e.to(device) for e in data) if isinstance(data, (tuple, list)) else data.to(device)) 
-            
+            output = model(tuple(e.to(device) for e in data) if isinstance(data, (tuple, list)) else data.to(device), context_pos=context_delimiter) 
+ 
             if context_delimiter is not None:
                 targets = targets[context_delimiter:]
 
+            losses = criterion(output.reshape(-1, n_out), targets.to(device).flatten())
             losses = losses.view(*output.shape[0:2]).squeeze(-1)
             loss = losses.mean()
             loss.backward()
@@ -91,7 +79,7 @@ def train(prior_dataloader, criterion, encoder_generator, transformer_configurat
                 nn.functional.one_hot(torch.tensor(context_delimiter), sequence_length)*loss.cpu().detach()
 
             total_positional_losses_recorded += torch.ones(sequence_length) if context_delimiter is None else \
-                nn.functional.one_hot(torch.tensor(sequence_length), sequence_length)
+                nn.functional.one_hot(torch.tensor(context_delimiter), sequence_length)
 
             
         return total_loss / steps_per_epoch, (
@@ -102,6 +90,7 @@ def train(prior_dataloader, criterion, encoder_generator, transformer_configurat
     for epoch in tqdm(range(1, epochs + 1)):
         loss, positional_loss = train_one_epoch() 
         losses.append(loss)
+        positional_losses.append(positional_loss)
         positional_losses.append(loss)
         if hasattr(dataloader, 'validate') and epoch % validation_period == 0:
             with torch.no_grad():
@@ -115,8 +104,8 @@ def train(prior_dataloader, criterion, encoder_generator, transformer_configurat
         if verbose:
             print('-' * 89)
             print(
-                f'| end of epoch {epoch:3d} | loss {loss:5.2f} | '
-                f"pos loss {','.join([f'{l:5.2f}' for l in positional_losses])}, lr {scheduler.get_last_lr()[0]}"
+                f'| end of epoch {epoch:3d} | loss {loss:5.2f} | ',
+                f"pos loss {','.join([f'{l:5.2f}' for l in positional_loss])}, lr {scheduler.get_last_lr()[0]}",
                 (f'val score {val_score}' if val_score is not None else ''))
             print('-' * 89)
 
