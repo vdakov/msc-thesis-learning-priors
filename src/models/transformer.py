@@ -16,10 +16,12 @@ class SeqBN(nn.Module):
         flat_x = x.view(-1, self.d_model)
         flat_x = self.bn(flat_x)
         return flat_x.view(*x.shape)
+    
+
 
 
 class TransformerModel(nn.Module):
-    def __init__(self, encoder, n_out, ninp, nhead, nhid, nlayers, dropout=0.0, y_encoder=None, pos_encoder=None, decoder=None, input_normalization=False):
+    def __init__(self, encoder, n_out, ninp, nhead, nhid, nlayers, dropout=0.0, y_encoder=None, pos_encoder=None, input_normalization=False):
         super().__init__()
         self.model_type = 'Transformer'
         encoder_layers = TransformerEncoderLayer(ninp, nhead, nhid, dropout, activation='gelu')
@@ -28,7 +30,7 @@ class TransformerModel(nn.Module):
         self.encoder = encoder
         self.y_encoder = y_encoder
         self.pos_encoder = pos_encoder
-        self.decoder = decoder(ninp, nhid, n_out) if decoder is not None else nn.Sequential(nn.Linear(ninp, nhid), nn.GELU(), nn.Linear(nhid, n_out))
+        self.decoder = nn.Sequential(nn.Linear(ninp, nhid), nn.GELU(), nn.Linear(nhid, n_out))
         self.input_ln = SeqBN(ninp) if input_normalization else None
 
         self.init_weights()
