@@ -17,38 +17,10 @@ from torch.optim.lr_scheduler import LambdaLR
 
 from src import train
 
-class StoreDictKeyPair(argparse.Action):
-    def __init__(self, option_strings, dest, nargs=None, **kwargs):
-        self._nargs = nargs
-        super(StoreDictKeyPair, self).__init__(option_strings, dest, nargs=nargs, **kwargs)
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        my_dict = {}
-        for kv in values:
-            k, v = kv.split("=")
-            try:
-                my_dict[k] = eval(v)
-            except NameError:
-                my_dict[k] = v
-        setattr(namespace, self.dest, my_dict)
-        print("dict values: {}".format(my_dict))
 
 
-def get_weighted_single_eval_pos_sampler(max_len):
-    """
-    This gives a sampler that can be used for `single_eval_pos` which yields good performance for all positions p,
-    where p <= `max_len`. At most `max_len` - 1 examples are shown to the Transformer.
-    :return: Sampler that can be fed to `train()` as `single_eval_pos_gen`.
-    """
-    return lambda: random.choices(range(max_len), [1 / (max_len - i) for i in range(max_len)])[0]
 
 
-def get_uniform_single_eval_pos_sampler(max_len):
-    """
-    Just sample any evaluation position with the same weight
-    :return: Sampler that can be fed to `train()` as `single_eval_pos_gen`.
-    """
-    return lambda: random.choices(range(max_len))[0]
 
 
 def _parse_args(config_parser, parser):
@@ -59,7 +31,7 @@ def _parse_args(config_parser, parser):
             cfg = yaml.safe_load(f)
             parser.set_defaults(**cfg)
 
-    # The main arg parser parses the rest of the args, the usual
+    #   The main arg parser parses the rest of the args, the usual
     # defaults will have been overridden if config file specified.
     args = parser.parse_args(remaining)
 
@@ -169,7 +141,7 @@ if __name__ == '__main__':
             get_sampler = get_uniform_single_eval_pos_sampler
         else:
             raise ValueError()
-        args.__dict__['single_eval_pos_gen'] = get_sampler(permutation_invariant_max_eval_pos)
+    args.__dict__['context_delimiter_generator'] = get_sampler(permutation_invariant_max_eval_pos)
     
     
     transformer_configuration = (args.emsize, args.nhead, args.nhid, args.nlayers, args.dropout)
