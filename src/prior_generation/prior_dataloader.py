@@ -1,6 +1,8 @@
 from torch.utils.data import DataLoader, IterableDataset
 from typing import Callable, Tuple, Any, Dict, Iterator, Union, Optional
 import torch
+import numpy as np
+import random
 
 def set_locals_in_self(locals):
     self = locals['self']
@@ -26,12 +28,13 @@ def get_dataloader(get_prior_batch_method: PriorBatchMethod) -> Callable[..., Da
             print('Dataset.__dict__', self.__dict__)
         
         def __iter__(self): 
-            x, y, target_y = get_prior_batch_method(**self.get_batch_kwargs)
-            if self.fuse_x_y:
-                yield torch.cat([x, torch.cat([torch.zeros_like(y[:1]), y[:-1]], 0).unsqueeze(-1).float()],
-                                 -1), target_y
-            else:
-                yield (x, y), target_y
+            for _ in range(len(self)):
+                x, y, target_y = get_prior_batch_method(**self.get_batch_kwargs)
+                if self.fuse_x_y:
+                    yield torch.cat([x, torch.cat([torch.zeros_like(y[:1]), y[:-1]], 0).unsqueeze(-1).float()],
+                                    -1), target_y
+                else:
+                    yield (x, y), target_y
 
         def __len__(self): 
             return self.num_steps 
@@ -43,8 +46,34 @@ def get_dataloader(get_prior_batch_method: PriorBatchMethod) -> Callable[..., Da
             self.num_features = get_batch_kwargs.get('num_features')
             self.num_outputs = get_batch_kwargs.get('num_outputs')
             dataset = PriorDataset(num_steps, fuse_x_y, **get_batch_kwargs)
+            self.validation_set = next(iter(dataset))
+            seq_length = self.validation_set[0][0].shape[0] # (T, B, H)
+            self.context_position_val= random.randint(0, seq_length - 2)
+                
             super().__init__(dataset, batch_size=None)
             print('DataLoader.__dict__', self.__dict__)
+            
+        def validate(self, model, criterion, device):
+            model.eval()
+            with torch.no_grad():
+                
+                inputs, targets = self.validation_set
+                
+                if isinstance(inputs, (tuple, list)):
+                    inputs = tuple(e.to(device) for e in inputs)
+                else:
+                    inputs = inputs.to(device)
+                targets = targets.to(device)
+    
+                output = model(inputs, context_pos=self.context_position_val) 
+                
+                v_targets = targets[self.context_position_val:]
+
+                loss = criterion(output.reshape(-1, self.num_outputs), v_targets.flatten())
+                
+            return loss.mean().item()
+            
+            
 
     return PriorDataLoader
 

@@ -42,8 +42,9 @@ class GaussianProcessPriorGenerator(PriorGenerator):
         base_kernel = kernel_cls(**init_kwargs)
 
         return gpytorch.kernels.ScaleKernel(base_kernel)
+    
 
-    def get_batch(self, batch_size:int, seq_len:int, num_features: int, device: str, **hyperparameter_configuration_kwargs: Any): 
+    def get_batch(self, batch_size:int, seq_len:int, num_features: int, device: str = 'cpu', **hyperparameter_configuration_kwargs: Any): 
         x = torch.rand(batch_size, seq_len, num_features, device=device)
         kernel_name = hyperparameter_configuration_kwargs.get('kernel_name', 'rbf') #type ignore 
         length_scale =  hyperparameter_configuration_kwargs.get('length_scale', 1) #type ignore 
@@ -66,7 +67,9 @@ class GaussianProcessPriorGenerator(PriorGenerator):
         y = y.transpose(0, 1)
         y_noisy = y_noisy.transpose(0, 1)
 
-        return x, y, y_noisy 
+        return x, y, y_noisy
+    
+    
 
     
     

@@ -147,7 +147,6 @@ def get_bucket_limits(num_outputs:int, full_range:tuple=None, ys:torch.Tensor=No
             full_range = torch.tensor(full_range)
         ys_sorted, ys_order = ys.sort(0)
         bucket_limits = (ys_sorted[ys_per_bucket-1::ys_per_bucket][:-1]+ys_sorted[ys_per_bucket::ys_per_bucket])/2
-        print(full_range)
         bucket_limits = torch.cat([full_range[0].unsqueeze(0), bucket_limits, full_range[1].unsqueeze(0)],0)
 
     else:

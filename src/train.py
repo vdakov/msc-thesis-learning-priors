@@ -36,7 +36,7 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
     
     device = device if torch.cuda.is_available() else "cpu:0"
     print(f'Using {device} device')
-    epochs, steps_per_epoch, batch_size, sequence_length, lr, warmup_epochs, validation_period, aggregate_k_gradients, scheduler = training_configuration
+    epochs, steps_per_epoch, batch_size, sequence_length, lr, warmup_epochs, aggregate_k_gradients, scheduler = training_configuration
     dataloader = prior_dataloader.get_dataloader(num_steps=steps_per_epoch, batch_size=batch_size, seq_len=sequence_length, **prior_hyperparameters)
     model = load_transformer(transformer_configuration, generators)
     n_out = dataloader.num_outputs
@@ -58,7 +58,6 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
         assert len(dataloader) % aggregate_k_gradients == 0, 'Please set the number of steps per epoch s.t. `aggregate_k_gradients` divides it.'
         for batch, (data, targets) in enumerate(dataloader):
             context_delimiter = context_delimiter_generator() if callable(context_delimiter_generator) else context_delimiter_generator
-            print(context_delimiter)
     
             output = model(tuple(e.to(device) for e in data) if isinstance(data, (tuple, list)) else data.to(device), context_pos=context_delimiter) 
  
@@ -86,15 +85,15 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
                     total_positional_losses / total_positional_losses_recorded).tolist()
 
     best_val_loss = float("inf")
-    losses, positional_losses = [], []
+    losses, positional_losses, val_losses = [], [], []
     for epoch in tqdm(range(1, epochs + 1)):
         loss, positional_loss = train_one_epoch() 
         losses.append(loss)
         positional_losses.append(positional_loss)
-        positional_losses.append(loss)
-        if hasattr(dataloader, 'validate') and epoch % validation_period == 0:
+        if hasattr(dataloader, 'validate'):
             with torch.no_grad():
-                val_score = dataloader.validate(model)
+                val_score = dataloader.validate(model, criterion, device)
+                val_losses.append(val_score)
                 best_val_loss = min(val_score, best_val_loss)
                 if val_score == best_val_loss and save_path is not None:
                     model._save_to_state_dict(save_path)
@@ -112,4 +111,4 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
         scheduler.step()
         
     
-    return losses, positional_losses, model.to('cpu')
+    return losses, positional_losses, val_losses, model.to('cpu')

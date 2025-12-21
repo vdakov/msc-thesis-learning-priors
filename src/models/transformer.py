@@ -103,6 +103,7 @@ class TransformerModel(nn.Module):
 
         output = self.transformer_encoder(src, src_mask)
         output = self.decoder(output)
+
         if fuse_x_y:
             return output 
         elif context_pos is None:
