@@ -54,6 +54,7 @@ class GaussianProcessPriorGenerator(PriorGenerator):
         kernel.output_scale = output_scale #type ignore 
 
         kernel.base_kernel.lengthscale = length_scale #type ignore 
+        kernel = kernel.to(device)
         
         covar_module = kernel(x)
         mean_module = torch.zeros(batch_size, seq_len, device=device)
