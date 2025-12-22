@@ -18,23 +18,33 @@ def get_dataloader(get_prior_batch_method: PriorBatchMethod) -> Callable[..., Da
     '''
 
     class PriorDataset(IterableDataset):
-        def __init__(self, num_steps: int, fuse_x_y: bool = False, **get_batch_kwargs: Any):
+        def __init__(self, num_steps: int, fuse_x_y: bool = False, prior_prediction=False, **get_batch_kwargs: Any):
             set_locals_in_self(locals())
             self.num_steps = num_steps
             self.num_features = get_batch_kwargs.get('num_features')
             self.num_outputs = get_batch_kwargs.get('num_outputs')
             self.get_batch_kwargs = get_batch_kwargs
+            self.prior_prediction = prior_prediction
             self.fuse_x_y = fuse_x_y
             print('Dataset.__dict__', self.__dict__)
         
         def __iter__(self): 
             for _ in range(len(self)):
-                x, y, target_y = get_prior_batch_method(**self.get_batch_kwargs)
-                if self.fuse_x_y:
-                    yield torch.cat([x, torch.cat([torch.zeros_like(y[:1]), y[:-1]], 0).unsqueeze(-1).float()],
-                                    -1), target_y
+                if not self.prior_prediction: 
+                    x, y, target_y = get_prior_batch_method(**self.get_batch_kwargs)
+                    if self.fuse_x_y:
+                        yield torch.cat([x, torch.cat([torch.zeros_like(y[:1]), y[:-1]], 0).unsqueeze(-1).float()],
+                                        -1), target_y, None
+                    else:
+                        yield (x, y), target_y, None
                 else:
-                    yield (x, y), target_y
+                    x, y, target_y, prior_parameters = get_prior_batch_method(**self.get_batch_kwargs)
+                    if self.fuse_x_y:
+                        yield torch.cat([x, torch.cat([torch.zeros_like(y[:1]), y[:-1]], 0).unsqueeze(-1).float()],
+                                        -1), target_y, prior_parameters
+                    else:
+                        yield (x, y), target_y, prior_parameters
+                    
 
         def __len__(self): 
             return self.num_steps 

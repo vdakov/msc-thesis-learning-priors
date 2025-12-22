@@ -17,7 +17,7 @@ class ExactGPModel(gpytorch.models.ExactGP):
 
 
 
-class GaussianProcessPriorGenerator(PriorGenerator):
+class GaussianProcessHyperPriorGenerator(PriorGenerator):
     KERNEL_MAP = {
         "rbf": gpytorch.kernels.RBFKernel,
         "matern": gpytorch.kernels.MaternKernel,
@@ -29,9 +29,9 @@ class GaussianProcessPriorGenerator(PriorGenerator):
     
     def __init__(self):
         super()
-        self.name = "Gaussian Process Prior"
+        self.name = "Gaussian Process with HyperPrior"
 
-    def _get_kernel(self, kernel_name: str, **kwargs) -> gpytorch.kernels.ScaleKernel: 
+    def _get_kernel(self, kernel_name: str, batch_size:int, **kwargs) -> gpytorch.kernels.ScaleKernel: 
         kernel_cls = self.KERNEL_MAP.get(kernel_name)
         if not kernel_cls:
             raise ValueError(f'Kernel name {kernel_name} not supported')
@@ -39,22 +39,28 @@ class GaussianProcessPriorGenerator(PriorGenerator):
         if kernel_name == 'matern':
             init_kwargs['nu'] = kwargs['nu']
 
-        base_kernel = kernel_cls(**init_kwargs)
+        batch_shape = torch.Size([batch_size])
+        base_kernel = kernel_cls(batch_shape=batch_shape, **init_kwargs)
 
-        return gpytorch.kernels.ScaleKernel(base_kernel)
-    
+        return gpytorch.kernels.ScaleKernel(base_kernel, batch_shape=batch_shape)
 
-    def get_batch(self, batch_size:int, seq_len:int, num_features: int, device: str = 'cpu', **hyperparameter_configuration_kwargs: Any): 
+    def get_batch(self, batch_size:int, seq_len:int, num_features: int, device: str, **hyperparameter_configuration_kwargs: Any): 
         x = torch.rand(batch_size, seq_len, num_features, device=device)
+        # kernel_sampler = hyperparameter_configuration_kwargs.get('kernel_distribution')
+        # kernel_name = kernel_sampler
+        length_scale_sampling = hyperparameter_configuration_kwargs.get('length_scale_sampling') #type ignore 
         kernel_name = hyperparameter_configuration_kwargs.get('kernel_name', 'rbf') #type ignore 
-        length_scale =  hyperparameter_configuration_kwargs.get('length_scale', 1) #type ignore 
-        output_scale = hyperparameter_configuration_kwargs.get('output_scalе', 1) #type ignore 
+        output_scale = hyperparameter_configuration_kwargs.get('output_scale', 1) #type ignore 
         noise_std = hyperparameter_configuration_kwargs.get('noise_std', 0.1) #type ignore 
+        
+        length_scale =  length_scale_sampling.sample(batch_size).to(device)
+        length_scale = length_scale.view(batch_size, 1, 1)
 
-        kernel = self._get_kernel(kernel_name, **hyperparameter_configuration_kwargs) #type ignore 
+        kernel = self._get_kernel(kernel_name, batch_size, **hyperparameter_configuration_kwargs) #type ignore 
         kernel.output_scale = output_scale #type ignore 
 
         kernel.base_kernel.lengthscale = length_scale #type ignore 
+        kernel = kernel.to(device)
         
         covar_module = kernel(x)
         mean_module = torch.zeros(batch_size, seq_len, device=device)
@@ -67,9 +73,7 @@ class GaussianProcessPriorGenerator(PriorGenerator):
         y = y.transpose(0, 1)
         y_noisy = y_noisy.transpose(0, 1)
 
-        return x, y, y_noisy
-    
-    
+        return x, y, y, length_scale.view(1, batch_size)
 
     
     
