@@ -83,8 +83,10 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
                 targets = targets[context_delimiter:]
 
             losses = criterion(output.reshape(-1, n_out), targets.to(device).flatten())
+            
             losses = losses.view(*output.shape[0:2]).squeeze(-1)
             loss = losses.mean()
+            print(loss)
             loss.backward()
             if batch % aggregate_k_gradients == aggregate_k_gradients - 1:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.)
@@ -107,6 +109,7 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
     for epoch in tqdm(range(1, epochs + 1)):
         loss, positional_loss = train_one_epoch() 
         losses.append(loss)
+        print(loss)
         positional_losses.append(positional_loss)
         if hasattr(dataloader, 'validate') and epoch % 25 == 0.:
             with torch.no_grad():

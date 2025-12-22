@@ -67,7 +67,8 @@ class GaussianProcessHyperPriorGenerator(PriorGenerator):
        
         dist = gpytorch.distributions.MultivariateNormal(mean_module, covar_module)
 
-        y = dist.rsample()
+        with gpytorch.settings.cholesky_jitter(1e-3):  # Increased from default
+            y = dist.rsample()
         y_noisy = y + torch.multiply(torch.randn_like(y), noise_std)
         x = x.transpose(0, 1) 
         y = y.transpose(0, 1)
