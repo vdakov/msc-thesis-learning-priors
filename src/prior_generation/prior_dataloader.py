@@ -67,7 +67,7 @@ def get_dataloader(get_prior_batch_method: PriorBatchMethod) -> Callable[..., Da
             model.eval()
             with torch.no_grad():
                 
-                inputs, targets = self.validation_set
+                inputs, targets, _ = self.validation_set
                 
                 if isinstance(inputs, (tuple, list)):
                     inputs = tuple(e.to(device) for e in inputs)
