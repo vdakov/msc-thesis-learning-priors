@@ -92,17 +92,27 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.)
                 optimizer.step()
                 optimizer.zero_grad()
+                
+            
 
             total_loss += loss.item()
-            total_positional_losses += losses.mean(1).cpu().detach() if context_delimiter is None else \
-                nn.functional.one_hot(torch.tensor(context_delimiter), sequence_length + len(prior_parameters))*loss.cpu().detach()
+            if prior_prediction: 
+                
+                total_positional_losses += losses.mean(1).cpu().detach() if context_delimiter is None else \
+                    nn.functional.one_hot(torch.tensor(context_delimiter), sequence_length + len(prior_parameters))*loss.cpu().detach()
 
-            total_positional_losses_recorded += torch.ones(sequence_length) if context_delimiter is None else \
-                nn.functional.one_hot(torch.tensor(context_delimiter), sequence_length + len(prior_parameters))
+                total_positional_losses_recorded += torch.ones(sequence_length) if context_delimiter is None else \
+                    nn.functional.one_hot(torch.tensor(context_delimiter), sequence_length + len(prior_parameters))
+            else: 
+                                
+                total_positional_losses += losses.mean(1).cpu().detach() if context_delimiter is None else \
+                    nn.functional.one_hot(torch.tensor(context_delimiter), sequence_length)*loss.cpu().detach()
+
+                total_positional_losses_recorded += torch.ones(sequence_length) if context_delimiter is None else \
+                    nn.functional.one_hot(torch.tensor(context_delimiter), sequence_length)
 
             
-        return total_loss / steps_per_epoch, (
-                    total_positional_losses / total_positional_losses_recorded).tolist()
+        return total_loss / steps_per_epoch, (total_positional_losses / total_positional_losses_recorded).tolist()
 
     best_val_loss = float("inf")
     losses, positional_losses, val_losses = [], [], []

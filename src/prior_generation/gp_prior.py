@@ -67,7 +67,7 @@ class GaussianProcessPriorGenerator(PriorGenerator):
         y = y.transpose(0, 1)
         y_noisy = y_noisy.transpose(0, 1)
 
-        return x, y, y
+        return x, y, y, None
 
     
     

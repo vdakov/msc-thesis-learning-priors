@@ -22,7 +22,7 @@ class PriorGenerator(ABC):
     
     def get_datasets_from_prior(self, number_of_datasets, num_points_per_dataset, num_features_per_dataset, device='cpu', **hyperparameter_configuration_kwargs: Any):
         
-        x, y, y_noisy = self.get_batch(number_of_datasets, num_points_per_dataset, num_features_per_dataset, device, **hyperparameter_configuration_kwargs)
+        x, y, y_noisy, _  = self.get_batch(number_of_datasets, num_points_per_dataset, num_features_per_dataset, device, **hyperparameter_configuration_kwargs)
             
         return x, y, y_noisy
     
