@@ -75,8 +75,6 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
                     pp = pp.unsqueeze(0)
                     targets = torch.cat((targets, pp))
                 
-            
-    
             output = model(tuple(e.to(device) for e in data) if isinstance(data, (tuple, list)) else data.to(device), context_pos=context_delimiter) 
 
             if context_delimiter is not None:
@@ -86,7 +84,6 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
             
             losses = losses.view(*output.shape[0:2]).squeeze(-1)
             loss = losses.mean()
-            print(loss)
             loss.backward()
             if batch % aggregate_k_gradients == aggregate_k_gradients - 1:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.)
@@ -116,12 +113,12 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
 
     best_val_loss = float("inf")
     losses, positional_losses, val_losses = [], [], []
-    for epoch in tqdm(range(1, epochs + 1)):
+    progress_bar = tqdm(range(1, epochs + 1))
+    for epoch in progress_bar:
         loss, positional_loss = train_one_epoch() 
         losses.append(loss)
-        print(loss)
         positional_losses.append(positional_loss)
-        if hasattr(dataloader, 'validate') and epoch % 25 == 0.:
+        if hasattr(dataloader, 'validate'):
             with torch.no_grad():
                 val_score = dataloader.validate(model, criterion, device)
                 val_losses.append(val_score)
@@ -131,14 +128,9 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
         else:
             val_score = None
 
-        if verbose:
-            print('-' * 89)
-            print(
-                f'| end of epoch {epoch:3d} | loss {loss:5.2f} | ',
-                f"pos loss {','.join([f'{l:5.2f}' for l in positional_loss])}, lr {scheduler.get_last_lr()[0]}",
-                (f'val score {val_score}' if val_score is not None else ''))
-            print('-' * 89)
-
+        
+        desc = f'loss {loss:5.2f} | pos loss {','.join([f'{l:5.2f}' for l in positional_loss])}, lr {scheduler.get_last_lr()[0]}' + (f'val score {val_score}' if val_score is not None else '')
+        progress_bar.set_description(desc)
         scheduler.step()
         
     

@@ -26,7 +26,6 @@ def get_dataloader(get_prior_batch_method: PriorBatchMethod) -> Callable[..., Da
             self.get_batch_kwargs = get_batch_kwargs
             self.prior_prediction = prior_prediction
             self.fuse_x_y = fuse_x_y
-            print('Dataset.__dict__', self.__dict__)
         
         def __iter__(self): 
             for _ in range(len(self)):
@@ -59,9 +58,7 @@ def get_dataloader(get_prior_batch_method: PriorBatchMethod) -> Callable[..., Da
             self.validation_set = next(iter(dataset))
             seq_length = self.validation_set[0][0].shape[0] # (T, B, H)
             self.context_position_val= random.randint(0, seq_length - 2)
-                
             super().__init__(dataset, batch_size=None)
-            print('DataLoader.__dict__', self.__dict__)
             
         def validate(self, model, criterion, device):
             model.eval()
