@@ -30,10 +30,8 @@ class PriorTransformerModel(nn.Module):
         self.encoder = encoder
         self.num_test_parameters = num_test_parameters
         self.num_features = num_features
-        # hacky for now, as I just pass in negative values
-        base_tokens = -1 * torch.arange(1, num_test_parameters + 1, dtype=torch.float)
-        test_tokens = base_tokens.unsqueeze(1).expand(-1, self.num_features)
-        self.register_buffer('x_test', test_tokens)
+
+        self.test_tokens = nn.Parameter(torch.randn(num_test_parameters, 1, ninp) * 0.02)
         self.y_encoder = y_encoder
         self.pos_encoder = pos_encoder  
         self.decoder = nn.Sequential(nn.Linear(ninp, nhid), nn.GELU(), nn.Linear(nhid, n_out))
