@@ -90,8 +90,6 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
                 optimizer.step()
                 optimizer.zero_grad()
                 
-            
-
             total_loss += loss.item()
             if prior_prediction: 
                 
