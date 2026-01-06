@@ -45,7 +45,7 @@ class GaussianProcessHyperPriorGenerator(PriorGenerator):
         return gpytorch.kernels.ScaleKernel(base_kernel, batch_shape=batch_shape)
 
     def get_batch(self, batch_size:int, seq_len:int, num_features: int, device: str, **hyperparameter_configuration_kwargs: Any): 
-        x = torch.rand(batch_size, seq_len, num_features, device=device)
+        x = torch.rand(batch_size, seq_len, num_features, device=device, dtype=torch.float64)
         # kernel_sampler = hyperparameter_configuration_kwargs.get('kernel_distribution')
         # kernel_name = kernel_sampler
         length_scale_sampling = hyperparameter_configuration_kwargs.get('length_scale_sampling') #type ignore 
@@ -53,28 +53,28 @@ class GaussianProcessHyperPriorGenerator(PriorGenerator):
         output_scale = hyperparameter_configuration_kwargs.get('output_scale', 1) #type ignore 
         noise_std = hyperparameter_configuration_kwargs.get('noise_std', 0.1) #type ignore 
         
-        length_scale =  length_scale_sampling.sample(batch_size).to(device)
+        length_scale =  length_scale_sampling.sample(batch_size).to(device).to(torch.float64)
         length_scale = length_scale.view(batch_size, 1, 1)
 
-        kernel = self._get_kernel(kernel_name, batch_size, **hyperparameter_configuration_kwargs) #type ignore 
+        kernel = self._get_kernel(kernel_name, batch_size, dtype=torch.float64, **hyperparameter_configuration_kwargs) #type ignore 
         kernel.output_scale = output_scale #type ignore 
 
         kernel.base_kernel.lengthscale = length_scale #type ignore 
         kernel = kernel.to(device)
         
         covar_module = kernel(x)
-        mean_module = torch.zeros(batch_size, seq_len, device=device)
+        mean_module = torch.zeros(batch_size, seq_len, device=device, dtype=torch.float64)
        
         dist = gpytorch.distributions.MultivariateNormal(mean_module, covar_module)
 
-        with gpytorch.settings.cholesky_jitter(1e-3):  # Increased from default
+        with gpytorch.settings.cholesky_jitter(1e-4):  # Increased from default
             y = dist.rsample()
         y_noisy = y + torch.multiply(torch.randn_like(y), noise_std)
-        x = x.transpose(0, 1) 
-        y = y.transpose(0, 1)
-        y_noisy = y_noisy.transpose(0, 1)
+        x = x.transpose(0, 1).float()
+        y = y.transpose(0, 1).float()
+        y_noisy = y_noisy.transpose(0, 1).float()
 
-        return x, y_noisy, y, length_scale.view(1, batch_size)
+        return x, y_noisy, y, length_scale.view(1, batch_size).float()
 
     
     
