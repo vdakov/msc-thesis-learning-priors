@@ -74,13 +74,20 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
                 for _, pp in enumerate(prior_parameters):
                     pp = pp.unsqueeze(0)
                     targets = torch.cat((targets, pp))
-                
-            output = model(tuple(e.to(device) for e in data) if isinstance(data, (tuple, list)) else data.to(device), context_pos=context_delimiter) 
-
+            print("DATA")
+            print(data)
+            print(89 * '-')
+            output = model(tuple(e.to(device) for e in data) if isinstance(data, (tuple, list)) else data.to(device), context_pos=context_delimiter)
+            print("OUTPUT") 
+            print(output)
+            
+            print(89 * '-')
             if context_delimiter is not None:
                 targets = targets[context_delimiter:]
 
+            print("LOSS")
             losses = criterion(output.reshape(-1, n_out), targets.to(device).flatten())
+            print(89 * '-')
             
             losses = losses.view(*output.shape[0:2]).squeeze(-1)
             loss = losses.mean()
@@ -105,7 +112,7 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
 
                 total_positional_losses_recorded += torch.ones(sequence_length) if context_delimiter is None else \
                     nn.functional.one_hot(torch.tensor(context_delimiter), sequence_length)
-
+        
             
         return total_loss / steps_per_epoch, (total_positional_losses / total_positional_losses_recorded).tolist()
 
