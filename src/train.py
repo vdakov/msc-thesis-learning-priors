@@ -74,20 +74,13 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
                 for _, pp in enumerate(prior_parameters):
                     pp = pp.unsqueeze(0)
                     targets = torch.cat((targets, pp))
-            print("DATA")
-            print(data)
-            print(89 * '-')
-            output = model(tuple(e.to(device) for e in data) if isinstance(data, (tuple, list)) else data.to(device), context_pos=context_delimiter)
-            print("OUTPUT") 
-            print(output)
             
-            print(89 * '-')
+            output = model(tuple(e.to(device) for e in data) if isinstance(data, (tuple, list)) else data.to(device), context_pos=context_delimiter)
+            
             if context_delimiter is not None:
                 targets = targets[context_delimiter:]
 
-            print("LOSS")
             losses = criterion(output.reshape(-1, n_out), targets.to(device).flatten())
-            print(89 * '-')
             
             losses = losses.view(*output.shape[0:2]).squeeze(-1)
             loss = losses.mean()
