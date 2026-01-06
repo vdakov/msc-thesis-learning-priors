@@ -74,7 +74,7 @@ class GaussianProcessHyperPriorGenerator(PriorGenerator):
         y = y.transpose(0, 1)
         y_noisy = y_noisy.transpose(0, 1)
 
-        return x, y, y, length_scale.view(1, batch_size)
+        return x, y_noisy, y, length_scale.view(1, batch_size)
 
     
     

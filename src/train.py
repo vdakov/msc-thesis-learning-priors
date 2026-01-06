@@ -19,14 +19,14 @@ from torch.optim.lr_scheduler import LambdaLR
 
 
 def load_transformer(transformer_configuration, generators):
-    emsize, nhead, nhid, nlayers, dropout, n_in, n_out, input_normalization, y_encoder_generator, sequence_length, fuse_x_y, prior_prediction  = transformer_configuration
+    emsize, nhead, nhid, nlayers, dropout, num_features, n_out, input_normalization, y_encoder_generator, sequence_length, fuse_x_y, prior_prediction, num_test_parameters  = transformer_configuration
     encoder_generator, y_encoder_generator, pos_encoder_generator = generators
-    encoder = encoder_generator(n_in + 1 if fuse_x_y else n_in,emsize)
+    encoder = encoder_generator(num_features + 1 if fuse_x_y else num_features,emsize)
     y_encoder = y_encoder_generator(1, emsize)
     pos_encoder = (pos_encoder_generator or positional_encodings.NoPositionalEncoding)(emsize, sequence_length * 2)
     if prior_prediction:
-        num_features = n_in
-        model = PriorTransformerModel(encoder, n_out, emsize, nhead, nhid, nlayers, dropout, 1, num_features,
+
+        model = PriorTransformerModel(encoder, n_out, emsize, nhead, nhid, nlayers, dropout, num_test_parameters, num_features,
                                 y_encoder=y_encoder, input_normalization=input_normalization,
                                 pos_encoder=pos_encoder)
     else:

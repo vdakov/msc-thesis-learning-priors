@@ -22,15 +22,14 @@ class PriorGenerator(ABC):
     
     def get_datasets_from_prior(self, number_of_datasets, num_points_per_dataset, num_features_per_dataset, device='cpu', **hyperparameter_configuration_kwargs: Any):
         
-        x, y, y_noisy, _  = self.get_batch(number_of_datasets, num_points_per_dataset, num_features_per_dataset, device, **hyperparameter_configuration_kwargs)
+        x, y_noisy, y, prior_parameters = self.get_batch(number_of_datasets, num_points_per_dataset, num_features_per_dataset, device, **hyperparameter_configuration_kwargs)
             
-        return x, y, y_noisy
+        return x, y_noisy, y, prior_parameters
     
     def visualize_datasets(self, number_of_datasets, num_points_per_dataset, num_features_per_dataset, device='cpu', **hyperparameter_configuration_kwargs: Any):
         datasets = self.get_datasets_from_prior(number_of_datasets, num_points_per_dataset, num_features_per_dataset, **hyperparameter_configuration_kwargs)
-        x, y, y_noisy = datasets 
-        x, y, y_noisy = x.detach().numpy() , y.detach().numpy() , y_noisy.detach().numpy() 
-        print(x.shape)
+        x, y_noisy, y, prior_parameters = datasets 
+        x, y_noisy, y, prior_parameters = x.detach().numpy() , y.detach().numpy() , y_noisy.detach().numpy(), prior_parameters.detach().numpy()
         assert x.shape[2] == 1, "Only one-dimensional x-datasets possible!"
         show_datasets(x, y, y_noisy, "Datasets from prior: " + self.get_name())
         
