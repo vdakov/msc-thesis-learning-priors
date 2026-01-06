@@ -21,7 +21,7 @@ class SeqBN(nn.Module):
 
 
 class PriorTransformerModel(nn.Module):
-    def __init__(self, encoder, n_out, ninp, nhead, nhid, nlayers, num_test_parameters, num_features, dropout=0.0, y_encoder=None, pos_encoder=None, input_normalization=False):
+    def __init__(self, encoder, n_out, ninp, nhead, nhid, nlayers, dropout, num_test_parameters, num_features, y_encoder=None, pos_encoder=None, input_normalization=False):
         super().__init__()
         self.model_type = 'Transformer'
         encoder_layers = TransformerEncoderLayer(ninp, nhead, nhid, dropout, activation='gelu')
@@ -30,8 +30,9 @@ class PriorTransformerModel(nn.Module):
         self.encoder = encoder
         self.num_test_parameters = num_test_parameters
         self.num_features = num_features
-
-        self.test_tokens = nn.Parameter(torch.randn(num_test_parameters, 1, ninp) * 0.02)
+        print(num_test_parameters)
+        print(num_features)
+        self.x_test = nn.Parameter(data=torch.randn(num_test_parameters, num_features))
         self.y_encoder = y_encoder
         self.pos_encoder = pos_encoder  
         self.decoder = nn.Sequential(nn.Linear(ninp, nhid), nn.GELU(), nn.Linear(nhid, n_out))
@@ -93,6 +94,7 @@ class PriorTransformerModel(nn.Module):
         else:
             src = self.encoder(src)
             
+
         batch_size = src.shape[1]
         x_test_batch = self.x_test.unsqueeze(1).repeat(1, batch_size, 1)
         x_test_encoded = self.encoder(x_test_batch)
