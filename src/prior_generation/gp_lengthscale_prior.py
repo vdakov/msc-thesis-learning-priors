@@ -55,8 +55,6 @@ class GaussianProcessHyperPriorGenerator(PriorGenerator):
         
         length_scale =  length_scale_sampling.sample(batch_size).to(device)
         length_scale = length_scale.view(batch_size, 1, 1)
-        
-        print(length_scale)
 
         kernel = self._get_kernel(kernel_name, batch_size, **hyperparameter_configuration_kwargs) #type ignore 
         kernel.output_scale = output_scale #type ignore 
