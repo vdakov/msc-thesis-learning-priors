@@ -38,15 +38,17 @@ def load_transformer(transformer_configuration, generators):
 
 def train(prior_dataloader, criterion, transformer_configuration, generators, training_configuration,
           prior_hyperparameters, load_path=None, context_delimiter_generator=None, device='cuda:0', 
-          verbose=True, save_path = None, **kwargs):
+          save_path = None, **kwargs):
 
     
     device = device if torch.cuda.is_available() else "cpu:0"
     print(f'Using {device} device')
-    epochs, steps_per_epoch, batch_size, sequence_length, lr, warmup_epochs, aggregate_k_gradients, scheduler, prior_prediction = training_configuration
-    dataloader = prior_dataloader.get_dataloader(num_steps=steps_per_epoch, batch_size=batch_size, seq_len=sequence_length, prior_prediction=prior_prediction, **prior_hyperparameters)
+    epochs, steps_per_epoch, batch_size, sequence_length, lr, warmup_epochs, aggregate_k_gradients, scheduler, prior_prediction, validation_context_pos = training_configuration
+    dataloader = prior_dataloader.get_dataloader(num_steps=steps_per_epoch, validation_context_pos=validation_context_pos, batch_size=batch_size, seq_len=sequence_length, prior_prediction=prior_prediction, **prior_hyperparameters)
     model = load_transformer(transformer_configuration, generators)
     n_out = dataloader.num_outputs
+    
+    print('Total Number of Datasets:', batch_size * epochs * steps_per_epoch)
     
     model.criterion = criterion
     if load_path is not None:
@@ -127,7 +129,7 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
             val_score = None
 
         
-        desc = f'loss {loss:5.2f} | pos loss {','.join([f'{l:5.2f}' for l in positional_loss])}, lr {scheduler.get_last_lr()[0]}' + (f'val score {val_score}' if val_score is not None else '')
+        desc = f'loss {loss:5.2f} | pos loss {','.join([f'{l:5.2f}' for l in positional_loss])}, lr {scheduler.get_last_lr()[0]}' + (f' val score {val_score}' if val_score is not None else '')
         progress_bar.set_description(desc)
         scheduler.step()
         

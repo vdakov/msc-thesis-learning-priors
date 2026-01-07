@@ -50,14 +50,17 @@ def get_dataloader(get_prior_batch_method: PriorBatchMethod) -> Callable[..., Da
 
 
     class PriorDataLoader(DataLoader):
-        def __init__(self, num_steps: int, fuse_x_y: bool = False, **get_batch_kwargs: Union[int, bool, Any]):
+        def __init__(self, num_steps: int, fuse_x_y: bool = False, validation_context_position=None, **get_batch_kwargs: Union[int, bool, Any]):
             set_locals_in_self(locals())
             self.num_features = get_batch_kwargs.get('num_features')
             self.num_outputs = get_batch_kwargs.get('num_outputs')
             dataset = PriorDataset(num_steps, fuse_x_y, **get_batch_kwargs)
             self.validation_set = next(iter(dataset))
             seq_length = self.validation_set[0][0].shape[0] # (T, B, H)
-            self.context_position_val= random.randint(0, seq_length - 2)
+            if validation_context_position:
+                self.context_position_val=validation_context_position
+            else:
+                self.context_position_val= random.randint(0, seq_length - 1)
             super().__init__(dataset, batch_size=None)
             
         def validate(self, model, criterion, device):
