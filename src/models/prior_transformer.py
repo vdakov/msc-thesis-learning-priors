@@ -30,8 +30,6 @@ class PriorTransformerModel(nn.Module):
         self.encoder = encoder
         self.num_test_parameters = num_test_parameters
         self.num_features = num_features
-        print(num_test_parameters)
-        print(num_features)
         self.x_test = nn.Parameter(data=torch.randn(num_test_parameters, num_features))
         self.y_encoder = y_encoder
         self.pos_encoder = pos_encoder  
