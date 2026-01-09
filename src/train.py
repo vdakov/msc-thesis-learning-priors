@@ -15,7 +15,9 @@ import math
 import torch
 from torch import nn
 from torch.optim.lr_scheduler import LambdaLR
-
+import csv 
+import os
+import time
 
 
 def load_transformer(transformer_configuration, generators):
@@ -38,24 +40,21 @@ def load_transformer(transformer_configuration, generators):
 
 def train(prior_dataloader, criterion, transformer_configuration, generators, training_configuration,
           prior_hyperparameters, load_path=None, context_delimiter_generator=None, device='cuda:0', 
-          save_path = None, **kwargs):
+          save_folder=None, experiment_name=None, **kwargs):
 
-    
-    device = device if torch.cuda.is_available() else "cpu:0"
-    print(f'Using {device} device')
     epochs, steps_per_epoch, batch_size, sequence_length, lr, warmup_epochs, aggregate_k_gradients, scheduler, prior_prediction, validation_context_pos = training_configuration
-    dataloader = prior_dataloader.get_dataloader(num_steps=steps_per_epoch, validation_context_pos=validation_context_pos, batch_size=batch_size, seq_len=sequence_length, prior_prediction=prior_prediction, **prior_hyperparameters)
+    dataloader = prior_dataloader.get_dataloader(num_steps=steps_per_epoch, validation_context_pos=validation_context_pos, batch_size=batch_size, seq_len=sequence_length, device=device,  prior_prediction=prior_prediction, **prior_hyperparameters)
     model = load_transformer(transformer_configuration, generators)
     n_out = dataloader.num_outputs
     
+    print(f'Using {device} device')
     print('Total Number of Datasets:', batch_size * epochs * steps_per_epoch)
     
-    model.criterion = criterion
     if load_path is not None:
-        model.load_state_dict(load_path)
-    model.to(device)
-
+        return reload_experiment(save_folder, experiment_name, transformer_configuration, generators, device)
     
+    model.criterion = criterion
+    model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
     scheduler = scheduler(optimizer, warmup_epochs, epochs)
 
@@ -123,8 +122,6 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
                 val_score = dataloader.validate(model, criterion, device)
                 val_losses.append(val_score)
                 best_val_loss = min(val_score, best_val_loss)
-                if val_score == best_val_loss and save_path is not None:
-                    model._save_to_state_dict(save_path)
         else:
             val_score = None
 
@@ -133,5 +130,55 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
         progress_bar.set_description(desc)
         scheduler.step()
         
+    if save_folder is not None:
+        experiment_name = experiment_name or f'model-{time.time()}'
+        exp_dir = os.path.join(save_folder, experiment_name)
+        os.makedirs(exp_dir, exist_ok=True)
+
+        checkpoint_path = os.path.join(exp_dir, 'checkpoint.pt')
+        
+        # Save everything in one go
+        save_checkpoint(
+            model, optimizer, scheduler, epoch, 
+            losses, positional_losses, val_losses, 
+            config=training_configuration, # handy for debugging later
+            path=checkpoint_path
+        )
+        print(f"Full experiment checkpoint saved to {checkpoint_path}")
+
+    
+        
     
     return losses, positional_losses, val_losses, model.to('cpu')
+
+
+def save_checkpoint(model, optimizer, scheduler, epoch, losses, positional_losses, val_losses, config, path):
+    checkpoint = {
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'scheduler_state_dict': scheduler.state_dict(),
+        'losses': losses,
+        'positional_losses': positional_losses,
+        'val_losses': val_losses,
+        'config': config, # Store the YAML config here too!
+    }
+    torch.save(checkpoint, path)
+    
+def load_checkpoint(path, transformer_configuration, generators, device='cpu'):
+    checkpoint = torch.load(path, map_location=device)
+    
+    # 1. Rebuild Model
+    model = load_transformer(transformer_configuration, generators)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.to(device)
+    
+    # 2. Extract History
+    history = {
+        'losses': checkpoint['losses'],
+        'positional_losses': checkpoint['positional_losses'],
+        'val_losses': checkpoint['val_losses'],
+        'epoch': checkpoint['epoch']
+    }
+    
+    return model, history
