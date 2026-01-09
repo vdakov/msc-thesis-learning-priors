@@ -1,0 +1,56 @@
+definitions: 
+  num_features: &NUM_FEATURES 1
+  num_outputs: &NUM_OUTPUTS 100
+  sequence_length : &SEQ_LENGTH 10
+  max_eval_pos: &MAX_EVAL_POS 9
+
+
+training_configuration:
+  epochs: 500 
+  batch_size: 256
+  warmup_epochs: 25
+  steps_per_epoch: 10
+  validation_context_pos: MAX_EVAL_POS
+  sequence_length: *SEQ_LENGTH
+  lr: 0.0001
+  scheduler: cosine_scheduler
+  aggregate_k_gradients: 1 
+  context_delimiter_sampling: uniform # 'weighted', 'uniform', 'constant'
+  context_delimiter_max_eval_pos: *MAX_EVAL_POS
+  num_test_parameters: 1
+
+transformer_configuration: 
+  emsize: 512 
+  fuse_x_y: False 
+  nlayers: 6 
+  num_features: *NUM_FEATURES
+  nhead: 4 
+  nhid: 1024 
+  num_outputs: *NUM_OUTPUTS
+  dropout: 0.2 
+  input_normalization: True
+  encoder_type: linear # linear, mlp
+  pos_encoder_type: none # linear, sinus, learned
+  y_encoder_type: linear # linear, mlp
+
+prior_configuration: 
+  prior_learning: False
+  type: gaussian_process_prior # gaussian_process_prior, gaussian_process_lengtscale_prior, ... 
+  hyperparams:
+    kernel: rbf
+    length_scale: 0.5
+    output_scale: 1 
+    noise_std: 0.001
+    num_features: *NUM_FEATURES
+    num_outputs: *NUM_OUTPUTS
+    # samplers: 
+      # length_scale: 
+      # 'distribution': uniform' #, 'bernoulli'
+      # 'low': 0
+      # 'high': 1
+    #(...)
+criterion_configuration: 
+  loss: bar_distribution
+  min_y: -5 
+  max_y: 5 
+  num_buckets: *NUM_OUTPUTS
