@@ -149,7 +149,7 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
     
         
     
-    return losses, positional_losses, val_losses, model.to('cpu')
+    return model.to('cpu'), losses, positional_losses, val_losses
 
 
 def save_checkpoint(model, optimizer, scheduler, epoch, losses, positional_losses, val_losses, config, path):

@@ -21,7 +21,8 @@ def show_vanilla_pfn_predictions(model, train_X, train_Y, num_datasets, num_trai
             pred_means = pred_means[-len(test_x):]
             pred_confs = pred_confs[-len(test_x):]
             # Plot scatter points for training data
-            ax.scatter(train_x[..., 0].cpu().numpy(), train_y.cpu().numpy(), label="Training Data")
+            ax.scatter(train_x[..., 0].cpu().numpy(), train_y.cpu().numpy(), label="Seen Data")
+            ax.scatter(train_X[num_training_points:, batch_index, :].cpu().numpy(), train_Y[num_training_points:, batch_index].cpu().numpy(), label="Unseen Data")
 
         # Plot model predictions
         order_test_x = test_x[:, 0].cpu().argsort()
