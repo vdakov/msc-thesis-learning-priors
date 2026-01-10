@@ -34,21 +34,21 @@ transformer_configuration:
   y_encoder_type: linear # linear, mlp
 
 prior_configuration: 
-  prior_learning: False
-  type: gaussian_process_prior # gaussian_process_prior, gaussian_process_lengtscale_prior, ... 
+  prior_learning: True
+  type: gaussian_process_lengtscale_prior # gaussian_process_prior, gaussian_process_lengtscale_prior, ... 
   hyperparams:
     kernel: rbf
-    length_scale: 0.5
+    # length_scale: 0.5
     output_scale: 1 
     noise_std: 0.001
     num_features: *NUM_FEATURES
     num_outputs: *NUM_OUTPUTS
-    # samplers: 
-      # length_scale: 
-      # 'distribution': uniform' #, 'bernoulli'
-      # 'low': 0
-      # 'high': 1
-    #(...)
+    samplers: 
+      length_scale:
+        distribution: scaled_bernoulli #, 'bernoulli'
+        low: 0.4
+        high: 0.6
+        p: 0.5
 criterion_configuration: 
   loss: bar_distribution
   min_y: -5 

@@ -74,7 +74,7 @@ def parse_config_dict(config: dict):
             low = config["samplers"][param]["low"]
             high = config["samplers"][param]["high"]
             return dist.Uniform(low=low, high=high)
-        elif distribution == "scaled_uniform": 
+        elif distribution == "scaled_bernoulli": 
             p = config["samplers"][param]["p"]
             low = config["samplers"][param]["low"]
             high = config["samplers"][param]["high"]
@@ -82,13 +82,9 @@ def parse_config_dict(config: dict):
             
             
     def get_prior_sampling_distributions(config):
-        for param in config["samplers"]:
-            if param == "lengthscale":
-                distribution = get_distribution(config, param, config["samplers"][param])
-                config["hyperparams"]["samplers"][param]= DistributionSampler(distribution)
-            elif dist == "scaled_bernoulli": 
-                distribution = get_distribution(config, param, config["samplers"][param])
-                config["hyperparams"]["samplers"][param]= DistributionSampler(distribution)
+        for param in config["hyperparams"]["samplers"]:
+            distribution = get_distribution(config["hyperparams"], param, config["hyperparams"]["samplers"][param]['distribution'])
+            config["hyperparams"]["samplers"][param]= DistributionSampler(distribution)
                 
         return config["hyperparams"]
         

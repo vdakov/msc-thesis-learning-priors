@@ -30,7 +30,8 @@ def get_dataloader(get_prior_batch_method: PriorBatchMethod) -> Callable[..., Da
         def __iter__(self): 
             for _ in range(len(self)):
                 if not self.prior_prediction: 
-                    x, y, target_y, prior_parameters = get_prior_batch_method(**self.get_batch_kwargs)
+                    #this call is not the best code quality
+                    x, y, target_y, prior_parameters = get_prior_batch_method(num_features_per_dataset=self.num_features, **self.get_batch_kwargs)
                     if self.fuse_x_y:
                         yield torch.cat([x, torch.cat([torch.zeros_like(y[:1]), y[:-1]], 0).unsqueeze(-1).float()],
                                         -1), target_y, None

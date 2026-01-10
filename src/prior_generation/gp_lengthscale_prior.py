@@ -48,7 +48,7 @@ class GaussianProcessHyperPriorGenerator(PriorGenerator):
         x = torch.randn(batch_size, seq_len, num_features, device=device)
         # kernel_sampler = hyperparameter_configuration_kwargs.get('kernel_distribution')
         # kernel_name = kernel_sampler
-        length_scale_sampling = hyperparameter_configuration_kwargs.get('length_scale_sampling') #type ignore 
+        length_scale_sampling = hyperparameter_configuration_kwargs["samplers"]["length_scale"] #type ignore 
         kernel_name = hyperparameter_configuration_kwargs.get('kernel_name', 'rbf') #type ignore 
         output_scale = hyperparameter_configuration_kwargs.get('output_scale', 1) #type ignore 
         noise_std = hyperparameter_configuration_kwargs.get('noise_std', 0.1) #type ignore 
