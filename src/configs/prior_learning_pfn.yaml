@@ -6,7 +6,7 @@ definitions:
 
 
 training_configuration:
-  epochs: 5 
+  epochs: 500 
   batch_size: 256
   warmup_epochs: 25
   steps_per_epoch: 10
