@@ -51,7 +51,7 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
     print('Total Number of Datasets:', batch_size * epochs * steps_per_epoch)
     
     if load_path is not None:
-        return load_checkpoint(load_path, transformer_configuration, generators, device=device)
+        return load_checkpoint(load_path, transformer_configuration, generators, criterion, device=device)
     
     model.criterion = criterion
     model.to(device)
@@ -165,11 +165,12 @@ def save_checkpoint(model, optimizer, scheduler, epoch, losses, positional_losse
     }
     torch.save(checkpoint, path)
     
-def load_checkpoint(path, transformer_configuration, generators, device='cpu'):
+def load_checkpoint(path, transformer_configuration, generators, criterion, device='cpu'):
     checkpoint = torch.load(path, map_location=device, weights_only=False)
     
     model = load_transformer(transformer_configuration, generators)
     model.load_state_dict(checkpoint['model_state_dict'], strict=False)
     model.to(device)
+    model.criterion = criterion 
     
     return model, checkpoint['losses'], checkpoint['positional_losses'], checkpoint['val_losses']
