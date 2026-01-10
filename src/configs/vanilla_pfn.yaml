@@ -1,6 +1,6 @@
 definitions: 
   num_features: &NUM_FEATURES 1
-  num_outputs: &NUM_OUTPUTS 100
+  num_outputs: &NUM_OUTPUTS 250
   sequence_length : &SEQ_LENGTH 10
   max_eval_pos: &MAX_EVAL_POS 9
 

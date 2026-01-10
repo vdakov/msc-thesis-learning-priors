@@ -133,6 +133,8 @@ def parse_config_dict(config: dict):
             get_sampler = get_weighted_single_eval_pos_sampler
         elif context_delimiter_sampling == 'uniform':
             get_sampler = get_uniform_single_eval_pos_sampler
+        elif context_delimiter_sampling == 'constant_last':
+            get_sampler = lambda x: sequence_length
         else:
             raise ValueError()
         
