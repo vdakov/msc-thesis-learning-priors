@@ -1,8 +1,8 @@
 definitions: 
   num_features: &NUM_FEATURES 1
   num_outputs: &NUM_OUTPUTS 250
-  sequence_length : &SEQ_LENGTH 10
-  max_eval_pos: &MAX_EVAL_POS 9
+  sequence_length : &SEQ_LENGTH 15
+  max_eval_pos: &MAX_EVAL_POS 14
 
 
 training_configuration:
@@ -29,7 +29,7 @@ transformer_configuration:
   num_outputs: *NUM_OUTPUTS
   dropout: 0.2 
   input_normalization: True
-  encoder_type: linear # linear, mlp
+  encoder_type: mlp # linear, mlp
   pos_encoder_type: none # linear, sinus, learned
   y_encoder_type: linear # linear, mlp
 
