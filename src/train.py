@@ -70,11 +70,13 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
                 context_delimiter = context_delimiter_generator() if callable(context_delimiter_generator) else context_delimiter_generator
             else:
                 context_delimiter = len(targets)
-       
+
+            
             if prior_prediction:
                 for _, pp in enumerate(prior_parameters):
                     pp = pp.unsqueeze(0)
                     targets = torch.cat((targets, pp))
+                    
             
             output = model(tuple(e.to(device) for e in data) if isinstance(data, (tuple, list)) else data.to(device), context_pos=context_delimiter)
             

@@ -92,6 +92,7 @@ def parse_config_dict(config: dict):
         prior_hyperparameters = get_prior_sampling_distributions(prior_cfg)
     else: 
         prior_hyperparameters = prior_cfg["hyperparams"]
+        
     
 
             

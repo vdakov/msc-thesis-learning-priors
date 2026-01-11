@@ -15,9 +15,9 @@ class PriorGenerator(ABC):
     def get_name(self):
         return self.name
     
-    def get_dataloader(self, num_steps: int, fuse_x_y: bool=False, validation_context_pos=None, **get_batch_kwargs:Any):
+    def get_dataloader(self, num_steps: int, fuse_x_y: bool=False, validation_context_pos=None, prior_prediction=False, **get_batch_kwargs:Any):
         dl = prior_dataloader.get_dataloader(self.get_batch)
-        out = dl(num_steps, fuse_x_y, validation_context_pos, **get_batch_kwargs)
+        out = dl(num_steps, fuse_x_y, validation_context_pos, prior_prediction, **get_batch_kwargs)
         return out 
     
     def get_datasets_from_prior(self, number_of_datasets, num_points_per_dataset, num_features_per_dataset, device='cpu', **hyperparameter_configuration_kwargs: Any):

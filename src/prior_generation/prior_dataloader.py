@@ -51,31 +51,39 @@ def get_dataloader(get_prior_batch_method: PriorBatchMethod) -> Callable[..., Da
 
 
     class PriorDataLoader(DataLoader):
-        def __init__(self, num_steps: int, fuse_x_y: bool = False, validation_context_position=None, **get_batch_kwargs: Union[int, bool, Any]):
+        def __init__(self, num_steps: int, fuse_x_y: bool = False, validation_context_position=None, prior_prediction=False, **get_batch_kwargs: Union[int, bool, Any]):
             set_locals_in_self(locals())
             self.num_features = get_batch_kwargs.get('num_features')
             self.num_outputs = get_batch_kwargs.get('num_outputs')
-            dataset = PriorDataset(num_steps, fuse_x_y, **get_batch_kwargs)
+            dataset = PriorDataset(num_steps, fuse_x_y, prior_prediction=prior_prediction, **get_batch_kwargs)
             self.validation_set = next(iter(dataset))
             seq_length = self.validation_set[0][0].shape[0] # (T, B, H)
             if validation_context_position:
                 self.context_position_val=validation_context_position
             else:
                 self.context_position_val= random.randint(0, seq_length - 1)
+                
+            if prior_prediction:
+                self.prior_prediction = True
+                
             super().__init__(dataset, batch_size=None)
             
         def validate(self, model, criterion, device):
             model.eval()
             with torch.no_grad():
-                
-                inputs, targets, _ = self.validation_set
+                inputs, targets, prior_parameters = self.validation_set
                 
                 if isinstance(inputs, (tuple, list)):
                     inputs = tuple(e.to(device) for e in inputs)
                 else:
                     inputs = inputs.to(device)
                 targets = targets.to(device)
-    
+                    
+                if self.prior_prediction:
+                    for _, pp in enumerate(prior_parameters):
+                        pp = pp.unsqueeze(0)
+                        targets = torch.cat((targets, pp))
+        
                 output = model(inputs, context_pos=self.context_position_val) 
                 
                 v_targets = targets[self.context_position_val:]
