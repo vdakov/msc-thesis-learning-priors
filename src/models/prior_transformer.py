@@ -8,7 +8,7 @@ from torch.nn.modules.transformer import MultiheadAttention, _get_activation_fn
 class SeqBN(nn.Module):
     def __init__(self, d_model):
         super().__init__()
-        self.bn = nn.BatchNorm1d(d_model)
+        self.bn = nn.LayerNorm(d_model)
         self.d_model = d_model
 
     def forward(self, x):
