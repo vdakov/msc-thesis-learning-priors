@@ -66,10 +66,10 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
         
         assert len(dataloader) % aggregate_k_gradients == 0, 'Please set the number of steps per epoch s.t. `aggregate_k_gradients` divides it.'
         for batch, (data, targets, prior_parameters) in enumerate(dataloader):
-            if not prior_prediction:
-                context_delimiter = context_delimiter_generator() if callable(context_delimiter_generator) else context_delimiter_generator
-            else:
-                context_delimiter = len(targets)
+            # if not prior_prediction:
+            context_delimiter = context_delimiter_generator() if callable(context_delimiter_generator) else context_delimiter_generator
+            # else:
+            #     context_delimiter = len(targets)
 
             
             if prior_prediction:
