@@ -19,7 +19,10 @@ def show_vanilla_pfn_predictions(model, train_X, train_Y, num_datasets, num_trai
             pred_means = model.criterion.mean(logits)
             pred_confs = model.criterion.quantile(logits)
             pred_means = pred_means[-len(test_x):]
+
             pred_confs = pred_confs[-len(test_x):]
+            print(pred_confs.shape)
+            print(pred_means.shape)
             # Plot scatter points for training data
             ax.scatter(train_x[..., 0].cpu().numpy(), train_y.cpu().numpy(), label="Seen Data")
             ax.scatter(train_X[num_training_points:, batch_index, :].cpu().numpy(), train_Y[num_training_points:, batch_index].cpu().numpy(), label="Unseen Data")
@@ -33,9 +36,9 @@ def show_vanilla_pfn_predictions(model, train_X, train_Y, num_datasets, num_trai
             label='pfn'
         )
         ax.fill_between(
-            test_x[order_test_x, 0].cpu().numpy(),
-            pred_confs[order_test_x][:, 0].cpu().numpy(),
-            pred_confs[order_test_x][:, 1].cpu().numpy(),
+            test_x[order_test_x, 0].cpu().numpy().flatten(),         # Flatten X
+            pred_confs[order_test_x][..., 0].cpu().numpy().flatten(), # Flatten Y1 (Lower Bound)
+            pred_confs[order_test_x][..., 1].cpu().numpy().flatten(), # Flatten Y2 (Upper Bound)
             alpha=.1,
             color='green'
         )

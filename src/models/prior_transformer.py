@@ -92,7 +92,10 @@ class PriorTransformerModel(nn.Module):
         else:
             src = self.encoder(src)
             
-
+        is_unbatched = src.dim() == 2
+        if is_unbatched:
+            src = src.unsqueeze(1) # Convert (Seq, Dim) -> (Seq, 1, Dim)
+            
         batch_size = src.shape[1]
         x_test_batch = self.x_test.unsqueeze(1).repeat(1, batch_size, 1)
         x_test_encoded = self.encoder(x_test_batch)
