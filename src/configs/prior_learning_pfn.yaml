@@ -2,11 +2,11 @@ definitions:
   num_features: &NUM_FEATURES 1
   num_outputs: &NUM_OUTPUTS 250
   sequence_length : &SEQ_LENGTH 15
-  max_eval_pos: &MAX_EVAL_POS 14
+  max_eval_pos: &MAX_EVAL_POS 15
 
 
 training_configuration:
-  epochs: 250
+  epochs: 500
   batch_size: 256
   warmup_epochs: 25
   steps_per_epoch: 10
@@ -26,7 +26,7 @@ transformer_configuration:
   num_features: *NUM_FEATURES
   nhead: 4 
   nhid: 1024 
-  num_outputs: *NUM_OUTPUTS
+  num_outputs: *NUM_OUTPUTS 
   dropout: 0.2 
   input_normalization: True
   encoder_type: mlp # linear, mlp
