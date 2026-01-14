@@ -45,7 +45,7 @@ class GaussianProcessHyperPriorGenerator(PriorGenerator):
         return gpytorch.kernels.ScaleKernel(base_kernel, batch_shape=batch_shape)
 
     def get_batch(self, batch_size:int, seq_len:int, num_features_per_dataset: int, device: str, **hyperparameter_configuration_kwargs: Any): 
-        x = torch.randn(batch_size, seq_len, num_features_per_dataset, device=device) 
+        x = 4 * torch.rand(batch_size, seq_len, num_features_per_dataset, device=device) - 2
         
         # kernel_sampler = hyperparameter_configuration_kwargs.get('kernel_distribution')
         # kernel_name = kernel_sampler

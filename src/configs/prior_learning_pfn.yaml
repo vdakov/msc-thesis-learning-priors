@@ -1,8 +1,8 @@
 definitions: 
   num_features: &NUM_FEATURES 1
   num_outputs: &NUM_OUTPUTS 250
-  sequence_length : &SEQ_LENGTH 15
-  max_eval_pos: &MAX_EVAL_POS 15
+  sequence_length : &SEQ_LENGTH 25
+  max_eval_pos: &MAX_EVAL_POS 25
 
 
 training_configuration:
