@@ -49,6 +49,8 @@ prior_configuration:
         low: 0.4
         high: 0.6
         p: 0.5
+  use_cache: True 
+  cache_path: "../cached_datasets/2mil-gp-hyperpriors.pt"
 criterion_configuration: 
   loss: bar_distribution
   min_y: -5 
