@@ -30,7 +30,7 @@ class PriorTransformerModel(nn.Module):
         self.encoder = encoder
         self.num_test_parameters = num_test_parameters
         self.num_features = num_features
-        self.x_test = nn.Parameter(data=torch.randn(num_test_parameters, num_features))
+        self.x_test = nn.Parameter(data=torch.randn(num_test_parameters, ninp))
         self.y_encoder = y_encoder
         self.pos_encoder = pos_encoder  
         self.decoder = nn.Sequential(nn.Linear(ninp, nhid), nn.GELU(), nn.Linear(nhid, n_out))
@@ -72,11 +72,7 @@ class PriorTransformerModel(nn.Module):
             nn.init.zeros_(layer.self_attn.out_proj.bias)
 
     def forward(self, src, src_mask=None, context_pos=None):
-        fuse_x_y = not isinstance(src, tuple) # We are passing just X, without training context
-        
-        assert not(fuse_x_y and context_pos is not None), \
-            'Don\'t use both fuxe_x_y and context_pos (permutation equivariant setup) at the same time.'
-            
+        only_x = not isinstance(src, tuple) # We are passing just X, without training context    
 
         if isinstance(src, tuple):
             x_src, y_src = src
@@ -98,8 +94,7 @@ class PriorTransformerModel(nn.Module):
             
         batch_size = src.shape[1]
         x_test_batch = self.x_test.unsqueeze(1).repeat(1, batch_size, 1)
-        x_test_encoded = self.encoder(x_test_batch)
-        src = torch.cat([src, x_test_encoded], dim=0)
+        src = torch.cat([src, x_test_batch], dim=0)
         total_len = len(src)
         
         if src_mask is None:
@@ -117,7 +112,7 @@ class PriorTransformerModel(nn.Module):
         output = self.transformer_encoder(src, src_mask)
         output = self.decoder(output)
 
-        if fuse_x_y:
+        if only_x:
             return output 
         elif context_pos is None:
             return output[0::2] # We only look at the X positions' predictions 

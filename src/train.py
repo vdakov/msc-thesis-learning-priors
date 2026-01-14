@@ -1,21 +1,13 @@
 import random 
-import argparse
 import torch.nn as nn 
 from tqdm import tqdm
-import yaml
-from criterion.bar_distribution import BarDistribution, get_bucket_limits
 import time
 import torch
-from prior_generation import gp_prior 
-import models.encoders as encoders
 import models.positional_encodings as positional_encodings 
 from models.transformer import TransformerModel
 from models.prior_transformer import PriorTransformerModel
-import math 
 import torch
 from torch import nn
-from torch.optim.lr_scheduler import LambdaLR
-import csv 
 import os
 import time
 import numpy as np
@@ -79,17 +71,12 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
         
         assert len(dataloader) % aggregate_k_gradients == 0, 'Please set the number of steps per epoch s.t. `aggregate_k_gradients` divides it.'
         for batch, (data, targets, prior_parameters) in enumerate(dataloader):
-            # if not prior_prediction:
             context_delimiter = context_delimiter_generator() if callable(context_delimiter_generator) else context_delimiter_generator
-            # else:
-            #     context_delimiter = len(targets)
 
-            
             if prior_prediction:
                 for _, pp in enumerate(prior_parameters):
                     pp = pp.unsqueeze(0)
                     targets = torch.cat((targets, pp))
-                    
             
             output = model(tuple(e.to(device) for e in data) if isinstance(data, (tuple, list)) else data.to(device), context_pos=context_delimiter)
             
@@ -160,9 +147,6 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
             path=checkpoint_path
         )
         print(f"Full experiment checkpoint saved to {checkpoint_path}")
-
-    
-        
     
     return model.to('cpu'), losses, positional_losses, val_losses
 
