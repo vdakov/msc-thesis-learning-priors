@@ -37,6 +37,7 @@ def parse_config_dict(config: dict):
     validation_context_pos = train_cfg['validation_context_pos']
     aggregate_k_gradients = train_cfg['aggregate_k_gradients']
     num_test_parameters = train_cfg["num_test_parameters"]
+    
     num_features = defs['num_features']
     num_outputs = defs['num_outputs']
     
@@ -92,6 +93,10 @@ def parse_config_dict(config: dict):
         prior_hyperparameters = get_prior_sampling_distributions(prior_cfg)
     else: 
         prior_hyperparameters = prior_cfg["hyperparams"]
+        
+    prior_hyperparameters["use_cache"] = prior_cfg["use_cache"]
+    if prior_hyperparameters["use_cache"]:
+        prior_hyperparameters["cache_path"] = prior_cfg["cache_path"]
         
     
 

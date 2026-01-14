@@ -3,6 +3,7 @@ from typing import Any, Tuple
 import torch
 from prior_generation.prior_generator import PriorGenerator
 import prior_generation.prior_dataloader as prior_dataloader 
+from tqdm import tqdm 
 
 class ExactGPModel(gpytorch.models.ExactGP):
     def __init__(self, mean_module, covariance_module, likelihood):
@@ -28,7 +29,7 @@ class GaussianProcessHyperPriorGenerator(PriorGenerator):
     }
     
     def __init__(self):
-        super()
+        super().__init__()
         self.name = "Gaussian Process with HyperPrior"
 
     def _get_kernel(self, kernel_name: str, batch_size:int, **kwargs) -> gpytorch.kernels.ScaleKernel: 
@@ -44,7 +45,13 @@ class GaussianProcessHyperPriorGenerator(PriorGenerator):
 
         return gpytorch.kernels.ScaleKernel(base_kernel, batch_shape=batch_shape)
 
-    def get_batch(self, batch_size:int, seq_len:int, num_features_per_dataset: int, device: str, **hyperparameter_configuration_kwargs: Any): 
+    def get_batch(self, batch_size:int, seq_len:int, num_features_per_dataset: int, device: str, use_cache=False, cache_path=None, **hyperparameter_configuration_kwargs: Any): 
+        
+        if use_cache:
+            self.load_cache(cache_path)
+            return self.sample_cache(batch_size, device)
+        
+        
         x = 4 * torch.rand(batch_size, seq_len, num_features_per_dataset, device=device) - 2
         
         # kernel_sampler = hyperparameter_configuration_kwargs.get('kernel_distribution')
@@ -74,7 +81,4 @@ class GaussianProcessHyperPriorGenerator(PriorGenerator):
         y_noisy = y_noisy.transpose(0, 1)
 
         return x, y_noisy, y, length_scale.view(1, batch_size)
-
-    
-    
-        
+   
