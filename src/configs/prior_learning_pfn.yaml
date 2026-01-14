@@ -1,12 +1,12 @@
 definitions: 
   num_features: &NUM_FEATURES 1
-  num_outputs: &NUM_OUTPUTS 250
+  num_outputs: &NUM_OUTPUTS 100
   sequence_length : &SEQ_LENGTH 25
   max_eval_pos: &MAX_EVAL_POS 25
 
 
 training_configuration:
-  epochs: 100
+  epochs: 500
   batch_size: 256
   warmup_epochs: 25
   steps_per_epoch: 10
