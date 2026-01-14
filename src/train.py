@@ -18,6 +18,8 @@ from torch.optim.lr_scheduler import LambdaLR
 import csv 
 import os
 import time
+import numpy as np
+import random
 
 
 def load_transformer(transformer_configuration, generators):
@@ -36,16 +38,27 @@ def load_transformer(transformer_configuration, generators):
                                 y_encoder=y_encoder, input_normalization=input_normalization,
                                 pos_encoder=pos_encoder)
     return model 
+
+def set_random_seeds(seed:int):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     
 
 def train(prior_dataloader, criterion, transformer_configuration, generators, training_configuration,
           prior_hyperparameters, load_path=None, context_delimiter_generator=None, device='cuda:0', 
-          save_folder=None, experiment_name=None, **kwargs):
+          save_folder=None, experiment_name=None, seed=42, **kwargs):
 
     epochs, steps_per_epoch, batch_size, sequence_length, lr, warmup_epochs, aggregate_k_gradients, scheduler, prior_prediction, validation_context_pos = training_configuration
     dataloader = prior_dataloader.get_dataloader(num_steps=steps_per_epoch, validation_context_pos=validation_context_pos, batch_size=batch_size, seq_len=sequence_length, device=device,  prior_prediction=prior_prediction, **prior_hyperparameters)
     model = load_transformer(transformer_configuration, generators)
     n_out = dataloader.num_outputs
+    
+    set_random_seeds(seed)
     
     print(f'Using {device} device')
     print('Total Number of Datasets:', batch_size * epochs * steps_per_epoch)
