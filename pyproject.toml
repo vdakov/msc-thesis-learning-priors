@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pfn-prior-learning"
+version = "0.1.0"
+description = "Learning prior parameters using Prior-Fitted Networks (PFNs)"
+authors = [
+  { name = "Vasil Dakov" },
+]
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+# 1. CORE DEPENDENCIES (From your requirements.txt)
+# These are required to actually run your model.
+dependencies = [
+    "torch",
+    "numpy",
+    "scikit-learn",
+    "gpytorch",
+    "botorch",
+    "pyro-ppl",
+    "blitz-bayesian-pytorch",
+    "xgboost",
+    "openml",
+    "pyyaml",
+    "tqdm",
+    "seaborn",
+]
+
+# 2. OPTIONAL / DEV DEPENDENCIES
+# These are for YOU (testing, linting, notebooks), not for the model.
+[project.optional-dependencies]
+dev = [
+    "jupyter",        # Moved here: You don't 'import jupyter' in your model code
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "pytest-mock",
+    "mypy>=0.910",
+    "ruff>=0.1.0",    # Modern replacement for flake8
+    "tox>=3.24",
+]
