@@ -9,7 +9,7 @@ test-linux:
   image: $PYTHON_IMAGE
   parallel:
     matrix:
-      - PYTHON_IMAGE: ["python:3.12", "pypy:3.10"] 
+    - PYTHON_IMAGE: ["python:3.10", "python:3.11", "python:3.12"]
   script:
     - pip install pytest .
     - pytest
