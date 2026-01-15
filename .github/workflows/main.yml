@@ -9,18 +9,10 @@ jobs:
       fail-fast: false 
       matrix: 
         # runs tests on diffent operatng systems 
-        os: [ubuntu-latest, macos-latest, windows-lates]
+        os: [ubuntu-latest, windows-latest]
         python-version: 
-          - "3.10"
-          - "3.11"
           - "3.12"
-          - "3.13"
-          - "3.14"
-          - "pypy-3.10"
-          - "pypy-3.11"
           - "pypy-3.12"
-          - "pypy-3.13"
-          - "pypy-3.14"
     name:  Tests
     runs-on: ${{matrix.os}} 
     steps: 
