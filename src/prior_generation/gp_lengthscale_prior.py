@@ -59,7 +59,9 @@ class GaussianProcessHyperPriorGenerator(PriorGenerator):
         length_scale_sampling = hyperparameter_configuration_kwargs["samplers"]["length_scale"] #type ignore 
         kernel_name = hyperparameter_configuration_kwargs.get('kernel_name', 'rbf') #type ignore 
         output_scale = hyperparameter_configuration_kwargs.get('output_scale', 1) #type ignore 
-        noise_std = hyperparameter_configuration_kwargs.get('noise_std', 0.1) #type ignore 
+        noise_std = hyperparameter_configuration_kwargs.get(
+            "noise_std", 0.001
+        ) #type ignore 
         
         length_scale =  length_scale_sampling.sample(batch_size).to(device)
         length_scale = length_scale.view(batch_size, 1, 1)

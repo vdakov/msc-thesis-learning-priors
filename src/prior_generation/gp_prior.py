@@ -28,7 +28,7 @@ class GaussianProcessPriorGenerator(PriorGenerator):
     }
     
     def __init__(self):
-        super()
+        super().__init__()
         self.name = "Gaussian Process Prior"
 
     def _get_kernel(self, kernel_name: str, **kwargs) -> gpytorch.kernels.ScaleKernel: 

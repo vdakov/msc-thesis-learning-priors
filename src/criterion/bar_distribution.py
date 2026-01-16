@@ -6,7 +6,8 @@ class BarDistribution(nn.Module):
     def __init__(self, borders: torch.Tensor): # here borders should start with min and end with max, where all values lie in (min,max) and are sorted
         # sorted list of borders
         super().__init__()
-        assert len(borders.shape) == 1
+        print(borders.shape)
+        assert len(borders.shape) == 1, "Borders should be one-dimensional"
         self.register_buffer('borders', borders)
         self.register_buffer('bucket_widths', self.borders[1:] - self.borders[:-1])
         full_width = self.bucket_widths.sum()
@@ -39,7 +40,9 @@ class BarDistribution(nn.Module):
         assert (target_sample >= 0).all() and (target_sample < self.num_bars).all(), f'y {y} not in support set for borders (min_y, max_y) {self.borders}'
         assert logits.shape[-1] == self.num_bars, f'{logits.shape[-1]} vs {self.num_bars}'
 
+        #this gets the log likelihood probabilities (sum up to 1) 
         bucket_log_probs = torch.log_softmax(logits, -1)
+        #this gets the log likelihood densities (scaled back by the actual area of the bin) - that way the bin size does not matter 
         scaled_bucket_log_probs = bucket_log_probs - torch.log(self.bucket_widths)
 
         return -scaled_bucket_log_probs.gather(-1,target_sample.unsqueeze(-1)).squeeze(-1)
