@@ -1,0 +1,277 @@
+\documentclass{beamer}
+\usepackage[english]{babel}
+\usepackage{calc}
+\usepackage[absolute,overlay]{textpos}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{comment}
+\usepackage{MnSymbol,wasysym}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage[normalem]{ulem}
+\usepackage{xcolor}
+\makeatletter
+\def\input@path{{../theme/}}
+\makeatother
+
+\setbeamertemplate{navigation symbols}{} % remove navigation symbols
+\mode<presentation>{\usetheme{tud}}
+
+% BIB SETTINGS
+\usepackage[backend=bibtex,firstinits=true,maxnames=30,maxcitenames=20,url=false,style=authoryear]{biblatex}
+\bibliography{bibfile}
+\setlength\bibitemsep{0.3cm} 
+\renewcommand{\bibfont}{\normalfont\scriptsize}
+\setbeamerfont{footnote}{size=\tiny}
+\renewcommand{\cite}[1]{\footnote<.->[frame]{\fullcite{#1}}}
+
+\title[]{Learning the PFN Prior: Thesis Meeting -16-01-2026}
+\institute[]{Delft University of Technology, The Netherlands}
+\author{Vasil Dakov; Tom Viering}
+\date{\today}
+
+\begin{document}
+{
+\setbeamertemplate{footline}{\usebeamertemplate*{minimal footline}}
+\frame{\titlepage}
+}
+
+{\setbeamertemplate{footline}{\usebeamertemplate*{minimal footline}}
+}
+
+% -----------------------------------------------------------------------------
+% AGENDA
+% -----------------------------------------------------------------------------
+\begin{frame}{Agenda}
+    \begin{itemize}
+        \item \textbf{Updates}
+        \item \textbf{Experiments Discussion}
+            \begin{itemize}
+                \item Baseline Comparisons \& ML-II similarities
+                \item Sensitivities \& Results
+            \end{itemize}
+        \item \textbf{Multiple vs. Single Datasets}
+        \item \textbf{First Stage Evaluation}
+            \begin{itemize}
+                \item Deadlines \& Format
+                \item Committee
+            \end{itemize}
+        \item \textbf{Next Steps \& Meetings}
+    \end{itemize}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% UPDATES
+% -----------------------------------------------------------------------------
+\begin{frame}{Updates: Technical Progress}
+    \begin{block}{1. Standard PFN Status}
+        \begin{itemize}
+            \item Normal PFN running properly (Compared with nanoTabPFN).
+            \item Resolved initial issues (noise handling, context passing).
+        \end{itemize}
+        % \includegraphics[width=0.45\textwidth]{Pasted image 20260110222000.png}
+        % \includegraphics[width=0.45\textwidth]{Pasted image 20260110222710.png}
+    \end{block}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.6\linewidth]{presentations//images/normal-pfn-trains-properly.png}
+    \end{figure}
+
+
+\end{frame}
+
+\begin{frame}{Updates: Technical Progress}
+    \begin{block}{2. Prior-Learning PFN}
+        \begin{itemize}
+            \item Model trains successfully now.
+            \item \textbf{Mechanism:} Prior parameter represented as a token in embedding space, appended to test predictions.
+            \item Capable of multitask learning and single prior learning.
+            \item Everything is regulated via a prior - I specify how many and under what distributions are the parameters distributed.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Updates: Infrastructure}
+    \begin{itemize}
+        \item \textbf{Caching:} 
+        \begin{itemize}
+            \item Speeds up training by \textbf{2x}. Is this enough?
+        \end{itemize}
+        \item \textbf{Code Quality:}
+        \begin{itemize}
+            \item Currently unit testing the entire codebase.
+            \item Looking for bugs/inconsistencies.
+        \end{itemize}
+        \item \textbf{Compute:}
+        \begin{itemize}
+            \item No DAIC yet (WIP).
+            \item Currently using Kaggle resources.
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% EXPERIMENTS
+% -----------------------------------------------------------------------------
+\begin{frame}{Experiments: Setup}
+    \textbf{Task:} Learn lengthscale of a GP and compare to ML-II estimates.
+
+    \vspace{0.3cm}
+    \textbf{1. Multitask Learning}
+    \begin{itemize}
+        \item First approach I tried - Move context delimiter to different locations during training.
+        \item Learn to predict both prior parameters and target values.
+        \item \textbf{Prior PFN does not seem to learn normal PFN predictions.} Potential issue.
+    \end{itemize}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.65\linewidth]{multitask-learning-does-not-work.png}
+    \end{figure}
+
+    
+
+    
+    % \includegraphics[width=0.8\textwidth]{Pasted image 20260114104754.png}
+\end{frame}
+
+
+
+\begin{frame}{Experiments - Prior PFN inference and ML-II}
+    \textbf{PFN Prediction (Fully Bayesian Inference)}
+    \begin{itemize}
+        \item \textbf{Prior:} Bernoulli $p=0.5$ on GP with lengthscale $l \in \{0.4, 0.6\}$.
+        \item \textbf{Task:} Generate GP with GT lengthscale, predict origin at inference.
+    \end{itemize}
+    \begin{alertblock}{Single Dataset Case $\approx$ ML-II}
+        \begin{itemize}
+            \item With no global information on how the prior varies \textit{between} datasets, the PFN expectation should align with an ML-II or MAP-II estimate.
+            \item Still fully Bayesian, but driven by an uninformative distribution like our Bernoulli. 
+        \end{itemize}
+    \end{alertblock}
+
+    \textbf{Comparison:}
+    \begin{itemize}
+        \item \textit{GP:} Optimizing marginal likelihood (L-BFGS-B).  Could serve as a baseline.
+        \item \textit{Bayesian Linear Regression:} Estimating $\mu$ from $w \sim \mathcal{N}(\mu, \sigma)$ with a single dataset.
+
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Experiments: Results \& Issues}
+    \textbf{Results of Prior-Learning PFN}
+    \begin{itemize}
+        \item Initial difficulty distinguishing values (strong preference for 0.4).
+    \end{itemize}
+    
+    % \includegraphics[width=0.6\textwidth]{Pasted image 20260114122120.png}
+    
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{presentations//images/bad-training-prior-learning-pfn.png}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Experiments: Results \& Issues}
+    \begin{itemize}
+        \item \textit{Hypothesis:} Small data size/range makes different lengthscales likely. Started ML-II comparison.
+        \item \textit{Recent fix:}  Bug found in passing output scale/noise at evaluation. Training with 0.001 noise, evaluating with 0.1 noise. Potential issue?
+        \item Also made distinguishing slightly easier  (0.3 vs 0.7).
+    \end{itemize}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.75\linewidth]{presentations//images/good-training-prior-learning-pfn.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Training Sensitivities}
+    \begin{itemize}
+        \item \textbf{Number of buckets:} Affects training efficiency.
+        \item \textbf{Sequence Length:} 
+        \begin{itemize}
+            \item Quadratic slowdown (attention), even with caching.
+            \item Expectation: Longer sequence (samples + range) $\to$ convergence to true value (for GPs).
+            \item \textit{Note:} Not applicable for all priors (e.g., Bayesian Linear Regression).
+        \end{itemize}
+        \item \textbf{X-Range:} Uniform sampling $(-2, 2)$ heavily affects lengthscale learning.
+        \item \textbf{Number of Datasets:} $\approx 500,000$ seems to reach good loss.
+    \end{itemize}
+        \textbf{Metric Issue:} Need a measure of optimal loss to know when to stop training. I started calculating the optimal NLL.
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% MULTIPLE DATASETS
+% -----------------------------------------------------------------------------
+\begin{frame}{Concept: Multiple vs. Single Datasets}
+    \textbf{Hypothesis:} To predict an actual prior (not just ML-II over single dataset), we need multiple datasets.
+
+    \vspace{0.5cm}
+    \textit{Example: Bayesian Linear Regression}
+    \begin{itemize}
+        \item \textbf{Single Dataset:} Mean estimate is OLS estimate.
+        \item \textbf{Multiple Datasets:} Mean of estimates converges to full prior distribution.
+    \end{itemize}
+
+    \vspace{0.5cm}
+    \textbf{Proposed Approach:}
+    \begin{itemize}
+        \item Embed $N$ datasets directly as $N$ embeddings.
+        \item Predict prior scale/parameters from this aggregate.
+        \item Allows outputting variance/uncertainty of the prior itself.
+    \end{itemize}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% FIRST STAGE & ADMIN
+% -----------------------------------------------------------------------------
+\begin{frame}{First Stage Evaluation \& Admin}
+    \textbf{Timeline}
+    \begin{itemize}
+        \item Deadline preference: 30th Jan vs. 15th Feb? (Semester break consideration).
+        \item Scheduling Greenlight meeting.
+    \end{itemize}
+
+    \textbf{Report Structure}
+    \begin{enumerate}
+        \item Short Intro \& Related Work
+        \item Methodology
+        \item Research Questions
+        \item Early Experiment Results
+    \end{enumerate}
+
+    \textbf{Thesis Committee}
+    \begin{itemize}
+        \item Process for selection?
+    \end{itemize}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% NEXT STEPS
+% -----------------------------------------------------------------------------
+\begin{frame}{Next Steps}
+    \textbf{Immediate Actions}
+    \begin{itemize}
+        \item Verify if prior learning issue is fixed.
+        \item Setup DAIC.
+        \item Implement learning for multiple/hierarchical parameters.
+        \item Start writing First Stage Evaluation Report.
+    \end{itemize}
+
+    \vspace{0.5cm}
+    \textbf{Optional:}
+    \begin{itemize}
+        \item Experiment with embedding multiple datasets directly.
+    \end{itemize}
+
+    \vspace{0.5cm}
+    \hrule
+    \vspace{0.2cm}
+    \textbf{Meeting Schedule:} Keep current slot or switch to biweekly?
+\end{frame}
+
+\end{document}

@@ -1,0 +1,196 @@
+\documentclass{beamer}
+\usepackage[english]{babel}
+\usepackage{calc}
+\usepackage[absolute,overlay]{textpos}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{comment}
+\usepackage{MnSymbol,wasysym}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage[normalem]{ulem}
+\usepackage{xcolor}
+\makeatletter
+\def\input@path{{../theme/}}
+\makeatother
+
+\setbeamertemplate{navigation symbols}{} % remove navigation symbols
+\mode<presentation>{\usetheme{tud}}
+
+% BIB SETTINGS (Kept from your template)
+\usepackage[backend=bibtex,firstinits=true,maxnames=30,maxcitenames=20,url=false,style=authoryear]{biblatex}
+\bibliography{bibfile}
+\setlength\bibitemsep{0.3cm} 
+\renewcommand{\bibfont}{\normalfont\scriptsize}
+\setbeamerfont{footnote}{size=\tiny}
+\renewcommand{\cite}[1]{\footnote<.->[frame]{\fullcite{#1}}}
+
+\title[]{Learning the PFN Prior: Thesis Meeting 11-12-2025}
+\institute[]{Delft University of Technology, The Netherlands}
+\author{Vasil Dakov; Tom Viering}
+\date{\today}
+
+\begin{document}
+{
+\setbeamertemplate{footline}{\usebeamertemplate*{minimal footline}}
+\frame{\titlepage}
+}
+
+{\setbeamertemplate{footline}{\usebeamertemplate*{minimal footline}}
+}
+
+% -----------------------------------------------------------------------------
+% AGENDA
+% -----------------------------------------------------------------------------
+\begin{frame}{Agenda}
+    \begin{itemize}
+        \item \textbf{Updates}
+            \begin{itemize}
+                \item Move away from generative prior
+            \end{itemize}
+        \item \textbf{Project Proposal Discussion}
+            \begin{itemize}
+                \item Goal \& Strategy
+                \item Research Questions (Data, Priors, Embeddings)
+            \end{itemize}
+        \item \textbf{Questions for Feedback}
+        \item \textbf{Literature Survey}
+    \end{itemize}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% UPDATES
+% -----------------------------------------------------------------------------
+\begin{frame}{Updates: Pivoting the Approach}
+    \begin{alertblock}{Dropped Idea: Learning a General Prior}
+        \begin{itemize}
+            \item Neural Processes (NPs) already attempt this.
+            \item Bottleneck appears to be data availability.
+            \item \textbf{Decision:} Focus on PFNs and using them to learn a \textbf{parametric prior}.
+        \end{itemize}
+    \end{alertblock}
+
+    \begin{block}{Current Focus: Initial Experiment \& Problem Understanding}
+        \begin{itemize}
+            \item \textbf{Approach:} Use original PFN code to induce a prior over a given Bayesian model (e.g., GP).
+            \item \textbf{Immediate Task:} Learn the lengthscale of a GP first.
+            \item \textbf{Goal:} Re-write proposal by next week.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% PROPOSAL: GOAL
+% -----------------------------------------------------------------------------
+\begin{frame}{Project Proposal: The Core Goal}
+    \textbf{Core Concept:} Train a PFN to predict different prior parameters under an assumed parametric model.
+    
+    \vspace{0.5cm}
+    
+    \begin{itemize}
+        \item \textbf{Mechanism:} Leverage In-Context Learning (ICL) to predict prior parameters over real datasets.
+        \item \textbf{Experimental Design:} Focus on deriving research questions about the \textit{data learning approach}.
+    \end{itemize}
+
+    \vspace{0.5cm}
+    \textbf{Key constraints to explore:}
+    \begin{enumerate}
+        \item How much data is needed to synthesize?
+        \item What prior needs to be induced?
+        \item How to represent hyper-priors?
+    \end{enumerate}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% PROPOSAL: RQ 1 & 2
+% -----------------------------------------------------------------------------
+\begin{frame}{Research Questions: Priors \& Data}
+    \textbf{Q1: What hyper-prior to use over distribution parameters for training?}
+        Options under consideration:
+        \begin{itemize}
+            \item Large Uniform Distribution (Likely inefficient).
+            \item Large Standard Normal ($\mathcal{N}(0, \sigma)$).
+            \item Uninformative Prior.
+            \item Cauchy Distribution (Allows arbitrarily high values).
+        \end{itemize}
+
+    \textbf{Q2: Data Requirements}
+        We are looking over datasets from multiple distributions.
+        \begin{itemize}
+            \item Impact on training time?
+            \item Impact on training efficiency?
+        \end{itemize}
+    
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% PROPOSAL: RQ 3 & 4
+% -----------------------------------------------------------------------------
+\begin{frame}{Research Questions: Mechanics}
+    \textbf{Q3: How to represent a hierarchical prior?}
+    \begin{itemize}
+        \item \textit{Idea:} Output a weight-vector from the PFN?
+        \item \textit{Issue:} Not always applicaple: e.g. for GPs - assumes linear combination of kernels. 
+        \item \textit{Question:} Can we constrain/regularize it? Does Bayesian Model Averaging not solve this naturally?
+    \end{itemize}
+
+    \vspace{0.3cm}
+    
+    \textbf{Q4: How to modify embeddings?}
+    \begin{itemize}
+        \item \textbf{Option A (Single Prior):} A single training example $(X_{train}, Y_{train})$ has one prior; The testing example is the parameter $\theta$ it was generated with. 
+            \begin{itemize}
+                \item \textit{Result:} Internal cohesion; similar to supervised meta-learning per dataset.
+            \end{itemize}
+        \item \textbf{Option B (Multiple Datasets):} A single training example is a 3-tuple $(X_{train}, Y_{train}, \theta)$. Train over multiple datasets with different parameters.
+            \begin{itemize}
+                \item \textit{Result:} Reasoning over a single dataset. Makes a more reasonable prediction at test time.
+            \end{itemize}
+    \end{itemize}
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% FEEDBACK / QUESTIONS
+% -----------------------------------------------------------------------------
+\begin{frame}{Questions on Feedback Received}
+    \begin{itemize}
+        \item \textbf{The "Setting":} You mentioned Learning Curves, BO, GPs. 
+            \begin{itemize}
+                \item \textit{Clarification:} Are we not just in the setting of Bayesian models in general?
+            \end{itemize}
+        \item \textbf{Choosing a Prior:} Stuck on the practical implementation of choosing between e.g., Matern vs RBF.
+        \item  \textbf{The GAN-Discriminator Approach}
+        "It may also be possible to avoid training a PFN altogether if you use a GAN-discriminator approach for this."
+    \end{itemize}
+
+    \pause
+    
+ 
+\end{frame}
+
+% -----------------------------------------------------------------------------
+% LIT SURVEY & NEXT STEPS
+% -----------------------------------------------------------------------------
+\begin{frame}{Literature Survey \& Next Steps}
+    \textbf{Literature Survey}
+    \begin{itemize}
+        \item Discussion on \textbf{Fully Bayesian Model Selection}.
+        \item Any specific papers to prioritize?
+    \end{itemize}
+
+    \vspace{1cm}
+    \hrule
+    \vspace{0.5cm}
+
+    \textbf{Immediate Next Steps}
+    \begin{enumerate}
+        \item Re-write proposal based on today's discussion.
+        \item Finalize the "Lengthscale Learning" experiment setup.
+    \end{enumerate}
+\end{frame}
+
+\end{document}

@@ -1,0 +1,172 @@
+\documentclass{beamer}
+\usepackage[english]{babel}
+\usepackage{calc}
+\usepackage[absolute,overlay]{textpos}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{comment}
+\usepackage{MnSymbol,wasysym}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage[normalem]{ulem}
+\usepackage{xcolor}
+\makeatletter
+\def\input@path{{../theme/}}
+\makeatother
+
+\setbeamertemplate{navigation symbols}{} % remove navigation symbols
+\mode<presentation>{\usetheme{tud}}
+
+% BIB SETTINGS
+\usepackage[backend=bibtex,firstinits=true,maxnames=30,maxcitenames=20,url=false,style=authoryear]{biblatex}
+\bibliography{bibfile}
+\setlength\bibitemsep{0.3cm} % space between entries in the reference list
+\renewcommand{\bibfont}{\normalfont\scriptsize}
+\setbeamerfont{footnote}{size=\tiny}
+\renewcommand{\cite}[1]{\footnote<.->[frame]{\fullcite{#1}}}
+
+
+\title[]{Learning the PFN Prior: Thesis Meeting 27-11-2025}
+\institute[]{Delft University of Technology, The Netherlands}
+\author{Vasil Dakov; Tom Viering}
+%\date{}
+
+\begin{document}
+{
+\setbeamertemplate{footline}{\usebeamertemplate*{minimal footline}}
+\frame{\titlepage}
+}
+
+{\setbeamertemplate{footline}{\usebeamertemplate*{minimal footline}}
+
+}
+
+\begin{frame}{Agenda}
+    \begin{itemize}
+        \item Updates 
+        \item Alignment between ideas 
+            \begin{itemize}
+                \item Shared notation 
+                \item Method 1: Learning the PFN Prior via generative modelling
+                \item Method 2: Learning the prior with PFNs
+                \item Planning
+            \end{itemize}
+            % What is my value issue - that this is bad in comparison to TabPFN? That who does it help? We already can put a 
+        \item Literature survey questions (Now, later?)
+        \item Future Plans
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Updates}
+    \begin{itemize}
+        \item Browsed literature on:
+            \begin{itemize}
+                \item TabPFN, LCPFN as well as just different PFN priors.
+                \item What defines a stochastic process? Relevant for one of my approach ideas.
+            \end{itemize}
+        \item TabPFN Implementation
+        \item Worked on proposal
+        \item Student Presentation
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Common Notation}
+    \begin{itemize}
+        \item PFN Prior: $p(D)$ - sampling procedure over synthetic datasets. 
+        \item Learning the PFN Prior: Based on group of $T$ tasks, learning a $p(D)$, similar to \textit{Pre-Trained GP}
+        \item PFN PPD:  $q_\theta(\mathbf Y_{test} | \mathbf X_{test}, D_{train}) \approx  p(\mathbf Y_{test} | \mathbf X_{test}, D_{train})$
+        \item $q_\gamma(D)$: generative model to generate datasets
+    \end{itemize}
+\footnote{A slide I maintain for our meetings?}
+\end{frame}
+
+\begin{frame}{Idea 1: Meta-Learning the PFN Prior}
+    \begin{block}{Proposal}
+        \begin{itemize}
+            \item Using $T$ related datasets, you can learn a generative model $q_\gamma(D)$.
+                \begin{itemize}
+                    \item Set-Valued Output
+                    \item VAEs, Neural Processes
+                    \item Mapping between a GP and NP
+                \end{itemize}
+            \item Assumes $\forall t:D_t \sim p(D)$. It can later be sampled. 
+            \item Similar to ICL; Quantify uncert. in w/o assumptions\footnote{Depending on the generative model.}
+        \end{itemize}
+    \end{block}
+    \begin{alertblock}{What's the value?}
+        \begin{itemize}
+            \item Fast Bayesian Inference for any task without assumptions!
+            \item Fast BO, but rigorous; Can verify others' priors via KL Divergence
+            \item Can verify it works by comparing it to other meta-learned priors - KL Divergence?
+        \end{itemize}
+    \end{alertblock}
+    \pause 
+\only<2>{
+    \begin{tikzpicture}[remember picture,overlay]
+        \node at (current page.center) [
+            fill=yellow, 
+            rounded corners, 
+            text width=0.7\textwidth,   % limit width to 70% of slide
+            align=center,               % center-align text inside the box
+            inner sep=10pt              % padding inside the box
+        ] {\small \textbf{This has likely been done.} \\ Reading about Neural Processes this seems like a solved issue.... \\ Albeit there is still some possible work in classification and such. \textbf{What do you thing?} \textbf{Also, why are they not used.}};
+    \end{tikzpicture}
+}
+
+\end{frame}
+
+\begin{frame}{Idea 2: Learning how to create priors with PFNs}
+    \begin{block}{Use PFNs to learn priors}
+        \begin{itemize}
+            \item \textbf{Idea:} We can pick out the best parametric priors via in-context learning. 
+            \item Lengthscale from GP $L$ example:
+                \begin{itemize}
+                    \item Uninformative prior over whole space: we shouldn't assume things about these parameters besides parametric form
+                    \item $D_t \sim p(D):$  Sample GP with $(x, y)$ as datapoints, and $L$ as target.
+                    \item Fit PFN to that prior.
+                    \item Input GPs dataset as context to PFN via ICL- get out lengthscale distribution. It should average out to a prior distribution. 
+                \end{itemize}
+            \item In general, the label would be a vector over the input parameters.
+            \item Zero-shot, one-shot, one point being multiple datasets
+        \end{itemize}
+    \end{block}
+    \begin{itemize}
+        \item Can be used to compare most-likely samples to hand-tuned priors like LCPFN or PFN4BO. 
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Questions \& Next Steps}
+    \begin{enumerate}
+        \item Finish Proposal 
+        \item What is up with idea 1? Why are these networks not that powerful or used?
+        \item Setup Experiments. What do you think? LCPFN? TabPFN? Any recommendations?
+            \begin{itemize}
+                \item I am quite confused at how idea 2 could be done. I want to use the ICL to get the actual prior numbers distributions, but end up in some recursive definitions.
+            \end{itemize}
+        \item Uninformative priors idea - theory I need to revise
+    \end{enumerate}
+    
+\end{frame}
+
+\begin{frame}{Literature Survey Questions}
+    \center
+    \Huge Hit me!
+\end{frame}
+
+\begin{frame}{Frame Title}
+    
+\end{frame}
+
+
+    
+
+
+
+
+
+
+\end{document}
