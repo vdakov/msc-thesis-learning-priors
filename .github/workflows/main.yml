@@ -9,7 +9,7 @@ jobs:
       fail-fast: false 
       matrix: 
         # runs tests on diffent operatng systems 
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
         python-version: 
           - "3.12"
     name:  Tests

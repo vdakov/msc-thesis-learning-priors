@@ -12,3 +12,4 @@ numpy
 openml
 botorch
 jupyter
+pytest 

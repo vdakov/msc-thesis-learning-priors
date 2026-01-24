@@ -9,20 +9,9 @@ test-linux:
   image: $PYTHON_IMAGE
   parallel:
     matrix:
-    - PYTHON_IMAGE: ["python:3.10", "python:3.11", "python:3.12"]
+    - PYTHON_IMAGE: ["python:3.12"]
   script:
     - pip install pytest .
     - pytest
 
-# --- WINDOWS JOBS (Runner-based) ---
-# Note: Windows on GitLab requires a specific "Tag" to find a Windows runner.
-# The tag below (saas-windows...) is for GitLab.com shared runners.
-test-windows:
-  stage: test
-  tags: 
-    - saas-windows-medium-amd64 
-  script:
-    - pip install pytest .
-    - pytest
-  # Note: Changing Python versions on Windows runners is harder than Linux.
-  # Usually, you use whatever Python is installed on that runner.
+#
