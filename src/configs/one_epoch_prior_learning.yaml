@@ -1,0 +1,58 @@
+definitions: 
+  num_features: &NUM_FEATURES 1
+  num_outputs: &NUM_OUTPUTS 100
+  sequence_length : &SEQ_LENGTH 25
+  max_eval_pos: &MAX_EVAL_POS 25
+
+
+training_configuration:
+  epochs: 2
+  batch_size: 32
+  warmup_epochs: 25
+  steps_per_epoch: 10
+  validation_context_pos: *SEQ_LENGTH
+  sequence_length: *SEQ_LENGTH
+  lr: 0.0001
+  scheduler: cosine_scheduler
+  aggregate_k_gradients: 1 
+  context_delimiter_sampling: constant_last # 'weighted', 'uniform', 'constant_last'
+  context_delimiter_max_eval_pos: *MAX_EVAL_POS
+  num_test_parameters: 1
+
+transformer_configuration: 
+  emsize: 512 
+  fuse_x_y: False 
+  nlayers: 6 
+  num_features: *NUM_FEATURES
+  nhead: 4 
+  nhid: 1024 
+  num_outputs: *NUM_OUTPUTS 
+  dropout: 0.2 
+  input_normalization: True
+  encoder_type: mlp # linear, mlp
+  pos_encoder_type: none # linear, sinus, learned
+  y_encoder_type: linear # linear, mlp
+
+prior_configuration: 
+  prior_learning: True
+  type: gaussian_process_lengtscale_prior # gaussian_process_prior, gaussian_process_lengtscale_prior, ... 
+  hyperparams:
+    kernel: rbf
+    # length_scale: 0.5
+    output_scale: 1 
+    noise_std: 0.001
+    num_features: *NUM_FEATURES
+    num_outputs: *NUM_OUTPUTS
+    samplers: 
+      length_scale:
+        distribution: scaled_bernoulli #, 'bernoulli'
+        low: 0.4
+        high: 0.6
+        p: 0.5
+  use_cache: False 
+  cache_path: "../cached_datasets/2mil-gp-hyperpriors.pt"
+criterion_configuration: 
+  loss: bar_distribution
+  min_y: -5 
+  max_y: 5 
+  num_buckets: *NUM_OUTPUTS
