@@ -49,6 +49,7 @@ prior_configuration:
       # 'low': 0
       # 'high': 1
     #(...)
+  use_cache: False
 criterion_configuration: 
   loss: bar_distribution
   min_y: -5 
