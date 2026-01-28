@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt 
 import seaborn as sns 
 
-def show_datasets(x, y, y_noisy, title):
-    _, axs = plt.subplots(1, 2, figsize=(15, 5))
+def show_datasets(x, y, y_noisy, title, show=True, save_path=None):
+    fig, axs = plt.subplots(1, 2, figsize=(15, 5))
     x = x.squeeze().T
     y = y.squeeze().T
     y_noisy = y_noisy.squeeze().T
@@ -13,5 +13,9 @@ def show_datasets(x, y, y_noisy, title):
     
     axs[1].set_title("Noisy Datasets")
     plt.title(title)
-    plt.show()
-    
+    if save_path:
+        plt.savefig(save_path)
+        plt.close(fig)
+    if show is True:
+        plt.show()
+

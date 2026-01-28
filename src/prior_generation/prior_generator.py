@@ -110,12 +110,12 @@ class PriorGenerator(ABC):
         print(f"Cache generated. Total samples: {self.num_cached_samples}")
         
         
-    def visualize_datasets(self, number_of_datasets, num_points_per_dataset, num_features_per_dataset, device='cpu', **hyperparameter_configuration_kwargs: Any):
+    def visualize_datasets(self, number_of_datasets, num_points_per_dataset, num_features_per_dataset, device='cpu', show=True, save_path=None, **hyperparameter_configuration_kwargs: Any):
         datasets = self.get_datasets_from_prior(number_of_datasets, num_points_per_dataset, num_features_per_dataset, **hyperparameter_configuration_kwargs)
         x, y_noisy, y, _ = datasets 
         x, y_noisy, y,= x.detach().numpy() , y.detach().numpy() , y_noisy.detach().numpy()
         assert x.shape[2] == 1, "Only one-dimensional x-datasets possible!"
-        show_datasets(x, y, y_noisy, "Datasets from prior: " + self.get_name())
+        show_datasets(x, y, y_noisy, "Datasets from prior: " + self.get_name(), show=show, save_path=save_path)
         
     
         
