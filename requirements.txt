@@ -1,15 +1,9 @@
 # Recommend to use python >= 3.9
 gpytorch
-pyro-ppl
 torch
 scikit-learn
 pyyaml
-blitz-bayesian-pytorch
 seaborn
-xgboost
 tqdm
 numpy
-openml
-botorch
-jupyter
 pytest 
