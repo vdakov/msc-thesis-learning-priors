@@ -35,6 +35,7 @@ class PriorTransformerModel(nn.Module):
         self.pos_encoder = pos_encoder  
         self.decoder = nn.Sequential(nn.Linear(ninp, nhid), nn.GELU(), nn.Linear(nhid, n_out))
         self.input_ln = SeqBN(ninp) if input_normalization else None
+        self.decoder_params = nn.Sequential(nn.Linear(ninp, nhid), nn.ReLU(), nn.Linear(nhid, n_out))
 
         self.init_weights()
 
@@ -110,7 +111,9 @@ class PriorTransformerModel(nn.Module):
             src = self.pos_encoder(src)
 
         output = self.transformer_encoder(src, src_mask)
-        output = self.decoder(output)
+        output_xy = self.decoder(output[:-len(x_test_batch)])
+        output_params = self.decoder_params(output[-len(x_test_batch):])
+        output = torch.cat([output_xy, output_params])
 
         if only_x:
             return output 
