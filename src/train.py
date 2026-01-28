@@ -1,11 +1,16 @@
 import random 
 import torch.nn as nn 
 from tqdm import tqdm
-import time
+import datetime
 import torch
 import models.positional_encodings as positional_encodings 
 from models.transformer import TransformerModel
 from models.prior_transformer import PriorTransformerModel
+from visualization.training_plots import save_training_validation_loss
+from visualization.prediction_visualization import (
+    save_vanilla_pfn_predictions,
+    save_prior_pfn_predictions,
+)
 import torch
 from torch import nn
 import os
@@ -133,25 +138,35 @@ def train(prior_dataloader, criterion, transformer_configuration, generators, tr
         scheduler.step()
         
     if save_folder is not None:
-        experiment_name = experiment_name or f'model-{time.time()}'
+        experiment_name = (
+            f"experiment_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+        )
+        
         exp_dir = os.path.join(save_folder, experiment_name)
         os.makedirs(exp_dir, exist_ok=True)
 
-        checkpoint_path = os.path.join(exp_dir, 'checkpoint.pt')
         
         # Save everything in one go
         save_checkpoint(
-            model, optimizer, scheduler, epoch, 
-            losses, positional_losses, val_losses, 
-            config=training_configuration, # handy for debugging later
-            path=checkpoint_path
+            model,
+            optimizer,
+            scheduler,
+            epoch,
+            losses,
+            positional_losses,
+            val_losses,
+            exp_dir,
+            prior_dataloader,
+            prior_hyperparameters,
+            prior_prediction,
+            device,
         )
-        print(f"Full experiment checkpoint saved to {checkpoint_path}")
     
     return model.to('cpu'), losses, positional_losses, val_losses
 
 
-def save_checkpoint(model, optimizer, scheduler, epoch, losses, positional_losses, val_losses, config, path):
+def save_checkpoint(model, optimizer, scheduler, epoch, losses, positional_losses, val_losses, experiment_dir, prior, prior_hyperparameters, prior_prediction, device):
+    checkpoint_path = os.path.join(experiment_dir, "checkpoint.pt")
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
@@ -160,9 +175,30 @@ def save_checkpoint(model, optimizer, scheduler, epoch, losses, positional_losse
         'losses': losses,
         'positional_losses': positional_losses,
         'val_losses': val_losses,
-        'config': config, # Store the YAML config here too!
     }
-    torch.save(checkpoint, path)
+    
+    torch.save(checkpoint, checkpoint_path)
+    os.makedirs(os.path.join(experiment_dir, 'plots'), exist_ok=True)
+    prior.visualize_datasets(number_of_datasets=5, num_points_per_dataset=200, num_features_per_dataset=1, device=device, show=False, save_path=os.path.join(experiment_dir, "plots", "prior-datasets.png"), **prior_hyperparameters)
+    save_vanilla_pfn_predictions(
+        model,
+        prior,
+        prior_hyperparameters,
+        device,
+        show_plot=False,
+        save_path=os.path.join(experiment_dir, "plots", "vanilla-pfn-predictions.png"),
+    )
+    save_training_validation_loss(losses, val_losses, os.path.join(experiment_dir, 'plots', 'loss-plot.png'))
+    if prior_prediction:
+        save_prior_pfn_predictions(
+            model,
+            prior,
+            prior_hyperparameters,
+            device,
+            show_plot=False,
+            save_path=os.path.join(experiment_dir, "plots", "prior-pfn-predictions.png"),
+        )
+    print('Plots and model saved to', experiment_dir)
     
 def load_checkpoint(path, transformer_configuration, generators, criterion, device='cpu'):
     checkpoint = torch.load(path, map_location=device, weights_only=False)
