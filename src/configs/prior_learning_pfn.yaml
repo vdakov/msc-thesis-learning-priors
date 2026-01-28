@@ -15,7 +15,7 @@ training_configuration:
   lr: 0.0001
   scheduler: cosine_scheduler
   aggregate_k_gradients: 1 
-  context_delimiter_sampling: constant_last # 'weighted', 'uniform', 'constant_last'
+  context_delimiter_sampling: weighted # 'weighted', 'uniform', 'constant_last'
   context_delimiter_max_eval_pos: *MAX_EVAL_POS
   num_test_parameters: 1
 
