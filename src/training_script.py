@@ -1,152 +1,201 @@
-import random 
 import argparse
-import torch.nn as nn 
-from tqdm import tqdm
-import yaml
-from criterion.bar_distribution import BarDistribution, get_bucket_limits
-import time
+import train
+import load_config
+import json 
 import torch
-from prior_generation import gp_prior 
-import models.encoders as encoders
-import models.positional_encodings as positional_encodings 
-from models.transformer import TransformerModel
-import math 
-import torch
-from torch import nn
-from torch.optim.lr_scheduler import LambdaLR
+import sys 
+import time 
 
-from src import train
+def get_args():
+    config_parser = argparse.ArgumentParser(
+        prog="Prior-Learning PFNs Training Loop",
+        description="Input either a config file path or the arguments you want to load",
+    )
 
+    config_parser.add_argument(
+        "--config", type=str, default=None, help="Path to YAML config file"
+    )
 
+    definitions = config_parser.add_argument_group("Definitions")
+    definitions.add_argument("--num_features", type=int, default=1)
+    definitions.add_argument("--num_outputs", type=int, default=100)
+    definitions.add_argument("--sequence_length", type=int, default=25)
+    definitions.add_argument("--max_eval_pos", type=int, default=25)
 
+    training_configuration = config_parser.add_argument_group("Training Configuration")
+    training_configuration.add_argument("--epochs", type=int, default=500)
+    training_configuration.add_argument("--batch_size", type=int, default=256)
+    training_configuration.add_argument(
+        "--warmup_epochs", type=int, default=25
+    )  
+    training_configuration.add_argument(
+        "--steps_per_epoch", type=int, default=10
+    ) 
+    training_configuration.add_argument(
+        "--validation_context_pos", type=int, default=None
+    )
+    training_configuration.add_argument(
+        "--lr", type=float, default=0.0001
+    )  
+    training_configuration.add_argument(
+        "--scheduler", type=str, default="cosine_scheduler"
+    )
+    training_configuration.add_argument("--aggregate_k_gradients", type=int, default=1)
+    training_configuration.add_argument(
+        "--context_delimiter_sampling", type=str, default="constant_last"
+    )  
+    training_configuration.add_argument(
+        "--context_delimiter_max_eval_pos", type=int, default=None
+    )  
+    training_configuration.add_argument("--num_test_parameters", type=int, default=1)
+    transformer_configration = config_parser.add_argument_group(
+        "Transformer Configuration"
+    )
+    transformer_configration.add_argument("--emsize", type=int, default=512)
+    
+    transformer_configration.add_argument("--fuse_x_y", action="store_true")
+    transformer_configration.add_argument("--nlayers", type=int, default=6)
+    transformer_configration.add_argument("--nhead", type=int, default=4)
+    transformer_configration.add_argument("--nhid", type=int, default=1024)
+    transformer_configration.add_argument("--dropout", type=float, default=0.2)
+    transformer_configration.add_argument(
+        "--input_normalization", action="store_true"
+    )  
+    transformer_configration.add_argument("--encoder_type", type=str, default="mlp")
+    transformer_configration.add_argument(
+        "--pos_encoder_type", type=str, default="none"
+    )
+    transformer_configration.add_argument(
+        "--y_encoder_type", type=str, default="linear"
+    )
 
+    prior_configuration = config_parser.add_argument_group("Prior Configuration")
+    
+    prior_configuration.add_argument("--prior_learning", action="store_true")
+    prior_configuration.add_argument(
+        "--prior_type", type=str, default="gaussian_process_prior"
+    )  
+    prior_configuration.add_argument(
+        "--prior_hyperparams",
+        type=str,
+        default=None,
+        help="JSON string to override the entire hyperparams dict",
+    )
+    prior_configuration.add_argument(
+        "--use_cache", action="store_true"
+    ) 
+    prior_configuration.add_argument("--cache_path", type=str, default="")
 
+    criterion_configuration = config_parser.add_argument_group(
+        "Criterion Configuration"
+    )
+    criterion_configuration.add_argument("--loss", type=str, default="bar_distribution")
+    criterion_configuration.add_argument(
+        "--min_y", type=float, default=-5.0
+    )  # Changed str to float
+    criterion_configuration.add_argument(
+        "--max_y", type=float, default=5.0
+    )  # Changed str to float
 
+    # --- Metadata ---
+    config_parser.add_argument("--save_folder", type=str, default="../results")
+    config_parser.add_argument("--load_path", type=str, default=None)
+    config_parser.add_argument("--experiment_name", type=str, default=f'experiment-{time.time()}')
 
-def _parse_args(config_parser, parser):
-    # Do we have a config file to parse?
-    args_config, remaining = config_parser.parse_known_args()
-    if args_config.config:
-        with open(args_config.config, 'r') as f:
-            cfg = yaml.safe_load(f)
-            parser.set_defaults(**cfg)
+    return config_parser
 
-    #   The main arg parser parses the rest of the args, the usual
-    # defaults will have been overridden if config file specified.
-    args = parser.parse_args(remaining)
-
-    # Cache the args as a text string to save them in the output dir later
-    args_text = yaml.safe_dump(args.__dict__, default_flow_style=False)
-    return args, args_text
+def make_args_into_dict(args):
+    hyperparams = {}
+    if args.prior_hyperparams:
+        try:
+            hyperparams = json.loads(args.prior_hyperparams)
+        except json.JSONDecodeError as e:
+            print(f"Error parsing --prior_hyperparams: {e}")
+            sys.exit(1)
+            
+    assert args.sequence_length >= args.validation_context_pos, "The sequence is large enough for the model evaluation context"
+    assert args.sequence_length >= args.context_delimiter_max_eval_pos, (
+        "The sequence is large enough for the model evaluation context"
+    )
+    assert args.min_y < args.max_y, "Loss range is not valid"
+    
+    
+    args_dict = {}
+    training_configuration = {
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "warmup_epochs": args.warmup_epochs,
+        "steps_per_epoch": args.steps_per_epoch,
+        "validation_context_pos": args.validation_context_pos,
+        "sequence_length": args.sequence_length,
+        "lr": args.lr,
+        "scheduler": args.scheduler,
+        "aggregate_k_gradients": args.aggregate_k_gradients,
+        "context_delimiter_sampling": args.context_delimiter_sampling,
+        "context_delimiter_max_eval_pos": args.context_delimiter_max_eval_pos,
+        "num_test_parameters": args.num_test_parameters,
+    }
+    
+    transformer_configuration = {
+        "emsize": args.emsize,
+        "fuse_x_y": args.fuse_x_y,
+        "nlayers": args.nlayers,
+        "nhead": args.nhead,
+        "nhid": args.nhid,
+        "dropout": args.dropout,
+        "input_normalization": args.input_normalization,
+        "encoder_type": args.encoder_type,
+        "pos_encoder_type": args.pos_encoder_type,
+        "y_encoder_type": args.y_encoder_type,
+        "num_features": args.num_features,
+        "num_outputs": args.num_outputs,
+    }
+    prior_configuration = {
+        "prior_learning": args.prior_learning,
+        "type": args.prior_type,
+        "hyperparams": hyperparams,
+        "use_cache": args.use_cache,
+        "cache_path": args.cache_path,
+    }
+    criterion_configuration = {
+        "loss": args.loss,
+        "min_y": args.min_y,
+        "max_y": args.max_y,
+        "num_buckets": args.num_outputs,
+    }
+    
+    args_dict['training_configuration'] = training_configuration
+    args_dict["transformer_configuration"] = transformer_configuration
+    args_dict["prior_configuration"] = prior_configuration
+    args_dict["criterion_configuration"] = criterion_configuration
+    
+    return args_dict
 
 if __name__ == '__main__': 
-    config_parser = argparse.ArgumentParser(description='Only used as a first parser for the config_file_path')
-    config_parser.add_argument('--config', type=str)
-    parser = argparse.ArgumentParser() 
-    parser.add_argument('prior_pfn')
-    parser.add_argument('--loss_function', default='barnll')
-    parser.add_argument('--min_y', default=-100.0,  type=float)
-    parser.add_argument('--max_y', default=100.0, type=float)
-    parser.add_argument('--num_buckets', default=100, type=int, action=StoreDictKeyPair, nargs="+", metavar="KEY=VAL")
-    parser.add_argument('--encoder', default='linear', type=str)
-    parser.add_argument('--y_encoder', default='linear', type=str)
-    parser.add_argument('--pos_encoder', default='sinus', type=str)
-    parser.add_argument('--sequence_length', default=10, type=int)
-    parser.add_argument('--warmup_epochs', default=50, type=int)
-    parser.add_argument(
-        '--prior_hyperparameters', 
-        action=StoreDictKeyPair, 
-        nargs="+", 
-        metavar="KEY=VAL",
-        default={},  # Default to empty dict if nothing provided
-        help="Pass hyperparameters as key=value pairs, e.g. --prior_hyperparameters length_scale=0.1"
-    )
-    parser.add_argument('--validation_period', default=10, type=int)
-    parser.add_argument('--permutation_invariant_max_eval_pos', default=None, type=int, help='Set this to an int to ')
-    parser.add_argument('--permutation_invariant_sampling', default='weighted', help="Only relevant if --permutation_invariant_max_eval_pos is set.")
-    parser.add_argument('--emsize', default=512, type=int) # sometimes even larger is better e.g. 1024
-    parser.add_argument('--nlayers', default=6, type=int)
-    parser.add_argument('--nhid', default=None, type=int) # 2*emsize is the default
-    parser.add_argument('--nhead', default=4, type=int) # nhead = emsize / 64 in the original paper
-    parser.add_argument('--dropout', default=.0, type=float)
-    parser.add_argument('--steps_per_epoch', default=10, type=int)
-    parser.add_argument('--batch_size', default=1000, type=int)
-    parser.add_argument('--lr', '--learning_rate', default=.001, type=float) # try also .0003, .0001, go lower with lower batch size
-
-    args, _ = _parse_args(config_parser, parser)
-
-    if args.nhid is None:
-        args.nhid = 2 * args.emsize
-
-    prior_pfn = args.prior_pfn 
-
-    if prior_pfn == 'gp':
-        prior = gp_prior.GaussianProcessPriorGenerator() 
+    parser = get_args()
+    args = parser.parse_args()
+    config = args.config
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    
+    if config: 
+        transformer_configuration, training_configuration, criterion, generators, prior, prior_hyperparameters, context_delimiter_generator = load_config.load_config_from_yaml(config)
     else: 
-        raise NotImplementedError(f'Prior == {prior_pfn}')
+        args_dict = make_args_into_dict(args)
+        transformer_configuration, training_configuration, criterion, generators, prior, prior_hyperparameters, context_delimiter_generator = load_config.parse_config_dict(config)
     
-    loss_function = args.loss_function 
-
-    num_buckets = args.num_buckets
-    max_y = args.max_y
-    min_y = args.min_y 
+    model, losses, positional_losses, val_losses = train.train(
+        prior_dataloader=prior,
+        criterion=criterion,  # Passing the wrapper
+        transformer_configuration=transformer_configuration,
+        generators=generators,
+        training_configuration=training_configuration,
+        prior_hyperparameters=prior_hyperparameters,
+        context_delimiter_generator=context_delimiter_generator,
+        save_folder=args.save_folder,
+        load_path=args.load_path,
+        experiment_name=args.experiment_name,
+        device=device,
+    )
+        
+        
     
-    if loss_function == 'ce':   
-        criterion = nn.CrossEntropyLoss(reduction='none')
-    elif loss_function == 'gaussnll':
-        criterion = nn.GaussianNLLLoss(reduction='none', full=True)
-    elif loss_function == 'mse':
-        criterion = nn.MSELoss(reduction='none')
-    elif loss_function == 'barnll':
-        criterion = BarDistribution(borders=get_bucket_limits(num_buckets, full_range=(min_y,max_y)))
-    else:
-        raise NotImplementedError(f'loss_function == {loss_function}.')
-    
-    encoder = args.encoder 
-    y_encoder = args.y_encoder 
-
-
-    def get_encoder_generator(encoder):
-        if encoder == 'linear':
-            encoder_generator = encoders.LinearEncoder
-        elif encoder == 'mlp':
-            encoder_generator = encoders.MLPEncoder
-        else:
-            raise NotImplementedError(f'A {encoder} encoder is not valid.')
-        return encoder_generator
-
-    encoder_generator = get_encoder_generator(encoder)
-    y_encoder_generator = get_encoder_generator(y_encoder)
-
-    pos_encoder = args.pos_encoder 
-
-    if pos_encoder == 'none':
-        pos_encoder_generator = None
-    elif pos_encoder == 'sinus':
-        pos_encoder_generator = positional_encodings.PositionalEncoding
-    elif pos_encoder == 'learned':
-        pos_encoder_generator = positional_encodings.LearnedPositionalEncoding
-    elif pos_encoder == 'paired_scrambled_learned':
-        pos_encoder_generator = positional_encodings.PairedScrambledPositionalEncodings
-    else:
-        raise NotImplementedError(f'pos_encoer == {pos_encoder} is not valid.')
-
-    permutation_invariant_max_eval_pos = args.permutation_invariant_max_eval_pos
-    permutation_invariant_sampling = args.permutation_invariant_sampling
-
-    if permutation_invariant_max_eval_pos is not None:
-        if permutation_invariant_sampling == 'weighted':
-            get_sampler = get_weighted_single_eval_pos_sampler
-        elif permutation_invariant_sampling == 'uniform':
-            get_sampler = get_uniform_single_eval_pos_sampler
-        else:
-            raise ValueError()
-    args.__dict__['context_delimiter_generator'] = get_sampler(permutation_invariant_max_eval_pos)
-    
-    
-    transformer_configuration = (args.emsize, args.nhead, args.nhid, args.nlayers, args.dropout)
-    print("ARGS for `train`:", args.__dict__)
-
-    train(prior, criterion, encoder_generator, transformer_configuration,
-          y_encoder_generator=y_encoder_generator,pos_encoder_generator=pos_encoder_generator,
-          **args.__dict__)
